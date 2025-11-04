@@ -14,7 +14,7 @@ class MessageRepo:
 class TgUserRepo:
     @staticmethod
     @sync_to_async
-    def get_or_create_user(telegram_id: int, **kwargs) -> TgUser:
+    def get_or_create_user(telegram_id: int, **kwargs) -> tuple[TgUser, bool]:
         user, created = TgUser.objects.get_or_create(
             telegram_id=telegram_id,
             defaults=kwargs

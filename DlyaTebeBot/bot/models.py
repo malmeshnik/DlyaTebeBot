@@ -7,7 +7,7 @@ class Message(models.Model):
     image = models.ImageField(
         upload_to="media/messages/", blank=True, null=True, verbose_name="Зображення"
     )
-    text = models.TextField(verbose_name="Текст повідомлення")
+    text = models.TextField(max_length=4096, verbose_name="Текст повідомлення")
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата створення")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата оновлення")
@@ -18,6 +18,28 @@ class Message(models.Model):
     class Meta:
         verbose_name = "Повідомлення"
         verbose_name_plural = "Повідомлення"
+
+class Button(models.Model):
+    message = models.ForeignKey(
+            Message, 
+            on_delete=models.CASCADE, 
+            related_name='buttons',
+            verbose_name="Повідомлення",
+        )
+    text = models.CharField(max_length=60, verbose_name="Текст кнопки")
+    url = models.URLField(
+            max_length=250, 
+            verbose_name="URL кнопки"
+        )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата створення")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата оновлення")
+
+    def __str__(self):
+        return self.text
+    
+    class Meta:
+        verbose_name = "Кнопка"
+        verbose_name_plural = "Кнопки"
 
 
 class TgUser(models.Model):
