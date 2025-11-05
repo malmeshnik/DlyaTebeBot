@@ -21,3 +21,12 @@ class TgUserRepo:
         )
 
         return user, created
+    
+    @staticmethod
+    @sync_to_async
+    def get_user_phone(telegram_id: int) -> str | None:
+        try:
+            user = TgUser.objects.get(telegram_id=telegram_id)
+            return user.phone_number
+        except TgUser.DoesNotExist:
+            return None

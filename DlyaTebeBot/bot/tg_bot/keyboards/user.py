@@ -1,5 +1,5 @@
-from aiogram.utils.keyboard import ReplyKeyboardBuilder
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton
 
 
 def get_contact_keyboard() -> ReplyKeyboardMarkup:
@@ -8,13 +8,13 @@ def get_contact_keyboard() -> ReplyKeyboardMarkup:
     return builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
 
 def main_menu_keyboard() -> ReplyKeyboardMarkup:
-    builder = ReplyKeyboardBuilder()
-    builder.add(KeyboardButton(text="Моя бонусна карта"))
-    builder.add(KeyboardButton(text="Акції"))
-    builder.add(KeyboardButton(text="Мої покупки"))
-    builder.add(KeyboardButton(text="Каталог"))
-    builder.add(KeyboardButton(text="Зв'язатися з нами"))
-    builder.add(KeyboardButton(text="Instagram, TikTok"))
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text="💳 Моя бонусна карта", callback_data="mu_bonus_card"))
+    builder.add(InlineKeyboardButton(text="🎁 Акції", callback_data="promo"))
+    builder.add(InlineKeyboardButton(text="🛍️ Мої покупки", callback_data="my_purchases"))
+    builder.add(InlineKeyboardButton(text="📦 Каталог", callback_data="catalog"))
+    builder.add(InlineKeyboardButton(text="☎️ Зв'язатися з нами", callback_data="contact_us"))
+    builder.add(InlineKeyboardButton(text="📱 Instagram, TikTok", callback_data="social_media"))
 
     builder.adjust(2, 2, 2)
-    return builder.as_markup(resize_keyboard=True)
+    return builder.as_markup()
