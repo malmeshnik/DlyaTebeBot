@@ -1,11 +1,12 @@
 from django.db import models
+from django.conf import settings
 
 
 # Create your models here.
 class Message(models.Model):
     name = models.CharField(max_length=200, verbose_name="Назва повідомлення")
     image = models.ImageField(
-        upload_to="media/messages/", blank=True, null=True, verbose_name="Зображення"
+        upload_to="messages/", blank=True, null=True, verbose_name="Зображення"
     )
     text = models.TextField(max_length=4096, verbose_name="Текст повідомлення")
 
@@ -69,6 +70,12 @@ class TgUser(models.Model):
         blank=True
     )
 
+    main_message_id = models.BigIntegerField(
+        verbose_name="ID повідомлення з головним меню",
+        null=True,
+        blank=True
+    )
+
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата створення")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата оновлення")
 
@@ -82,12 +89,16 @@ class TgUser(models.Model):
 class PromoCampaign(models.Model):
     name = models.CharField(verbose_name="Назва")
     description = models.TextField(verbose_name="Опис")
-    image = models.ImageField(upload_to="media/promocampaign")
+    image = models.ImageField(upload_to="promocampaign/")
     start_date = models.DateField(verbose_name="Дата початку")
     end_date = models.DateField(verbose_name="Дата завершення")
 
     def __str__(self):
         return self.name
+    
+    @property
+    def image_url(self):
+        return settings.DOMAIN + self.image.url
     
     class Meta:
         verbose_name = "Акція"

@@ -35,6 +35,7 @@ async def start(message: Message, state: FSMContext) -> None:
     await send_message(
         message=message,
         message_name="start",
+        user_repo=tg_user_repo,
         keyboard=get_contact_keyboard(),
     )
 
@@ -72,6 +73,7 @@ async def handle_contact(message: Message, state: FSMContext) -> None:
         await send_message(
             message=message,
             message_name="contact_received",
+            user_repo=tg_user_repo,
             keyboard=main_menu_keyboard(),
         )
     await state.clear()
@@ -83,6 +85,7 @@ async def main_menu_message(query: CallbackQuery) -> None:
         await edit_message(
             message=query.message,
             message_name="contact_received",
+            user_repo=tg_user_repo,
             keyboard=main_menu_keyboard(),
         )
     except TelegramBadRequest:
@@ -90,6 +93,7 @@ async def main_menu_message(query: CallbackQuery) -> None:
         await send_message(
             message=query.message,
             message_name="contact_received",
+            user_repo=tg_user_repo,
             keyboard=main_menu_keyboard(),
         )
 
@@ -129,12 +133,19 @@ async def bonus_card_message(query: CallbackQuery) -> None:
     photo = BufferedInputFile(buf.getvalue(), filename="bonus_qr.png")
 
     await query.message.delete()
-    await send_message(message=query.message, message_name="bonus_card", photo=photo)
+    await send_message(
+        message=query.message,
+        message_name="bonus_card",
+        user_repo=tg_user_repo,
+        photo=photo,
+    )
 
 
 @router.callback_query(F.data == "catalog")
 async def catalog(query: CallbackQuery) -> None:
-    await edit_message(message=query.message, message_name="catalog")
+    await edit_message(
+        message=query.message, message_name="catalog", user_repo=tg_user_repo
+    )
 
 
 @router.callback_query(F.data == "contact_us")
@@ -142,12 +153,15 @@ async def contact_request_message(query: CallbackQuery) -> None:
     await edit_message(
         message=query.message,
         message_name="contact_request",
+        user_repo=tg_user_repo,
     )
 
 
 @router.callback_query(F.data == "social_media")
 async def social_media_message(query: CallbackQuery) -> None:
-    await edit_message(message=query.message, message_name="social_media")
+    await edit_message(
+        message=query.message, message_name="social_media", user_repo=tg_user_repo
+    )
 
 
 @router.inline_query(F.query.startswith("promo"))
@@ -185,7 +199,7 @@ async def promo(query: InlineQuery):
         results.append(
             InlineQueryResultArticle(
                 id=f"promo-{promo.id}",
-                thumbnail_url="https://i.pinimg.com/1200x/40/04/db/4004dbf92cc3dd544eb1d84237a711b3.jpg",
+                thumbnail_url=promo.image_url,
                 title=promo.name,
                 description=desc,
                 input_message_content=InputTextMessageContent(
@@ -200,7 +214,12 @@ async def promo(query: InlineQuery):
 @router.message(F.text.startswith("promo:"))
 async def view_promo(message: Message, bot: Bot) -> None:
     await message.delete()
-    await bot.delete_message(message.chat.id, message.message_id - 1)
+    try:
+        user_id = message.chat.id
+        main_message_id = await tg_user_repo.get_main_message_id(user_id)
+        await bot.delete_message(user_id, main_message_id)
+    except:
+        pass
 
     keyboard = promo_kb()
     pk = message.text.split(":")[1]
@@ -209,7 +228,9 @@ async def view_promo(message: Message, bot: Bot) -> None:
 
     if promocampaign.image:
         photo = FSInputFile(promocampaign.image.path)
-        await message.answer_photo(photo=photo, caption=message_text, reply_markup=keyboard)
+        await message.answer_photo(
+            photo=photo, caption=message_text, reply_markup=keyboard
+        )
         return
 
     await message.answer(message_text, reply_markup=keyboard)

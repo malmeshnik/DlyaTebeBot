@@ -1,4 +1,5 @@
 import mimetypes
+from loguru import logger
 
 from aiogram import Bot
 from aiogram.types import (
@@ -14,6 +15,7 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from ..models import Message as DbMessage
+from .repo import TgUserRepo
 
 
 def get_keyboard_for_message(
@@ -33,10 +35,7 @@ def get_keyboard_for_message(
             )
 
     builder.row(
-        InlineKeyboardButton(
-            text="⬅️ Повернутися в меню",
-            callback_data="main_menu"
-        )
+        InlineKeyboardButton(text="⬅️ Повернутися в меню", callback_data="main_menu")
     )
 
     return builder.as_markup()
@@ -45,6 +44,7 @@ def get_keyboard_for_message(
 async def send_message(
     message: Message,
     message_name: str,
+    user_repo: TgUserRepo = None,
     photo: BufferedInputFile = None,
     keyboard: ReplyKeyboardMarkup | InlineKeyboardMarkup = None,
 ) -> Message:
@@ -61,12 +61,17 @@ async def send_message(
             if mime_type and mime_type.startswith("image/"):
 
                 photo = FSInputFile(db_message.image.path)
-                
+
         msg = await message.answer_photo(
             photo=photo, caption=db_message.text, reply_markup=keyboard
         )
     else:
         msg = await message.answer(text=db_message.text, reply_markup=keyboard)
+
+    if message_name == "start":
+        user_id = message.chat.id
+        logger.info(f"Saving message with main menu for user: {user_id}, message_id: {msg.message_id}")
+        user_repo.save_main_message(user_id, msg.message_id)
 
     return msg
 
@@ -74,8 +79,10 @@ async def send_message(
 async def edit_message(
     message: Message,
     message_name: str,
+    user_repo: TgUserRepo,
     keyboard: ReplyKeyboardMarkup | InlineKeyboardMarkup = None,
 ) -> Message:
+    logger.info(f"Editing message with name: {message_name}")
     db_message = await DbMessage.objects.prefetch_related("buttons").aget(
         name=message_name
     )
@@ -91,7 +98,16 @@ async def edit_message(
             msg = await message.edit_media(media=media, reply_markup=keyboard)
             msg = await message.edit_text(text=db_message.text, reply_markup=keyboard)
     else:
-        msg = await message.edit_text(text=db_message.text, reply_markup=keyboard)
+        try:
+            msg = await message.edit_text(text=db_message.text, reply_markup=keyboard)
+        except:
+            await message.delete()
+            msg = await message.answer(text=db_message.text, reply_markup=keyboard)
+
+    if message_name == "contact_received":
+        user_id = message.chat.id
+        logger.info(f"Saving message with main menu for user: {user_id}, message_id: {msg.message_id}")
+        await user_repo.save_main_message(user_id, msg.message_id)
 
     return msg
 
@@ -101,9 +117,11 @@ async def edit_message_by_id(
     chat_id: int,
     message_id: int,
     db_message_name: str,
-    keyboard: ReplyKeyboardMarkup | InlineKeyboardMarkup = None
+    keyboard: ReplyKeyboardMarkup | InlineKeyboardMarkup = None,
 ) -> Message:
-    db_message = await DbMessage.objects.prefetch_related("buttons").aget(name=db_message_name)
+    db_message = await DbMessage.objects.prefetch_related("buttons").aget(
+        name=db_message_name
+    )
 
     if keyboard is None:
         keyboard = get_keyboard_for_message(db_message)
