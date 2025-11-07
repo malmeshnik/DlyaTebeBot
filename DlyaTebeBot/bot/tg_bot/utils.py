@@ -1,5 +1,6 @@
 import mimetypes
 
+from aiogram import Bot
 from aiogram.types import (
     Message,
     FSInputFile,
@@ -9,6 +10,7 @@ from aiogram.types import (
     InputMediaPhoto,
     BufferedInputFile,
 )
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from ..models import Message as DbMessage
@@ -92,3 +94,48 @@ async def edit_message(
         msg = await message.edit_text(text=db_message.text, reply_markup=keyboard)
 
     return msg
+
+
+async def edit_message_by_id(
+    bot: Bot,
+    chat_id: int,
+    message_id: int,
+    db_message_name: str,
+    keyboard: ReplyKeyboardMarkup | InlineKeyboardMarkup = None
+) -> Message:
+    db_message = await DbMessage.objects.prefetch_related("buttons").aget(name=db_message_name)
+
+    if keyboard is None:
+        keyboard = get_keyboard_for_message(db_message)
+
+    if db_message.image:
+        mime, _ = mimetypes.guess_type(db_message.image.path)
+        if mime and mime.startswith("image/"):
+            media = InputMediaPhoto(
+                media=FSInputFile(db_message.image.path),
+                caption=db_message.text,
+            )
+            try:
+                return await bot.edit_message_media(
+                    chat_id=chat_id,
+                    message_id=message_id,
+                    media=media,
+                    reply_markup=keyboard,
+                )
+            except TelegramBadRequest:
+                return await bot.edit_message_caption(
+                    chat_id=chat_id,
+                    message_id=message_id,
+                    caption=db_message.text,
+                    reply_markup=keyboard,
+                )
+
+    try:
+        return await bot.edit_message_text(
+            chat_id=chat_id,
+            message_id=message_id,
+            text=db_message.text,
+            reply_markup=keyboard,
+        )
+    except TelegramBadRequest:
+        return None

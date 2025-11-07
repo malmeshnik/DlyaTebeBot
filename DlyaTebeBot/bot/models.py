@@ -78,3 +78,17 @@ class TgUser(models.Model):
     class Meta:
         verbose_name = "Користувач Telegram"
         verbose_name_plural = "Користувачі Telegram"
+
+class PromoCampaign(models.Model):
+    name = models.CharField(verbose_name="Назва")
+    description = models.TextField(verbose_name="Опис")
+    image = models.ImageField(upload_to="media/promocampaign")
+    start_date = models.DateField(verbose_name="Дата початку")
+    end_date = models.DateField(verbose_name="Дата завершення")
+
+    def __str__(self):
+        return self.name
+    
+    class Meta:
+        verbose_name = "Акція"
+        verbose_name_plural = "Акції"

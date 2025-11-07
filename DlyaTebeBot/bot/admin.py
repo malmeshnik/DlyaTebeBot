@@ -1,6 +1,7 @@
 from django.contrib import admin
 
-from .models import Message, TgUser, Button
+from .models import Message, TgUser, Button, PromoCampaign
+
 
 class ButtonInline(admin.TabularInline):
     model = Button
@@ -17,8 +18,34 @@ class MessageAdmin(admin.ModelAdmin):
 
     inlines = [ButtonInline]
 
+
 @admin.register(TgUser)
 class TgUserAdmin(admin.ModelAdmin):
-    list_display = ("telegram_id", "username", "first_name", "last_name", "phone_number", "created_at", "updated_at")
-    search_fields = ("telegram_id", "username", "first_name", "last_name", "phone_number")
+    list_display = (
+        "telegram_id",
+        "username",
+        "first_name",
+        "last_name",
+        "phone_number",
+        "created_at",
+        "updated_at",
+    )
+    search_fields = (
+        "telegram_id",
+        "username",
+        "first_name",
+        "last_name",
+        "phone_number",
+    )
     readonly_fields = ("created_at", "updated_at")
+
+
+@admin.register(PromoCampaign)
+class PromoCampaignAdmin(admin.ModelAdmin):
+    list_display = (
+        "name",
+        "start_date",
+        "end_date"
+    )
+    search_fields = ("name",)
+    

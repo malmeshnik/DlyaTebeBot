@@ -1,6 +1,7 @@
+from django.utils import timezone
 from asgiref.sync import sync_to_async
 
-from ..models import Message, TgUser
+from ..models import Message, TgUser, PromoCampaign
 
 class MessageRepo:
     @staticmethod
@@ -30,3 +31,20 @@ class TgUserRepo:
             return user.phone_number
         except TgUser.DoesNotExist:
             return None
+        
+    @staticmethod
+    @sync_to_async
+    def get_promocampaigns() -> list[PromoCampaign]:
+        today = timezone.localdate()
+
+        return list(
+            PromoCampaign.objects
+            .filter(start_date__lte=today, end_date__gte=today)
+            .order_by("-start_date")
+        )
+    
+
+    @staticmethod
+    @sync_to_async
+    def get_promo_by_pk(pk: int) -> PromoCampaign:
+        return PromoCampaign.objects.get(pk=pk)

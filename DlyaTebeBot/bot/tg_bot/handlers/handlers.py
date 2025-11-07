@@ -3,16 +3,26 @@ from io import BytesIO
 from loguru import logger
 
 import qrcode
-from aiogram import Router, F
-from aiogram.types import CallbackQuery, Message, BufferedInputFile, ReplyKeyboardRemove
+from aiogram import Router, F, Bot
+from aiogram.types import (
+    CallbackQuery,
+    Message,
+    BufferedInputFile,
+    InlineQueryResultPhoto,
+    ReplyKeyboardRemove,
+    InlineQuery,
+    InputTextMessageContent,
+    InlineQueryResultArticle,
+    FSInputFile,
+)
 from aiogram.filters.command import CommandStart
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
 
 from ..repo import MessageRepo, TgUserRepo
-from ..keyboards.user import get_contact_keyboard, main_menu_keyboard
+from ..keyboards.user import get_contact_keyboard, main_menu_keyboard, promo as promo_kb
 from ..states import UserStates
-from ..utils import send_message, edit_message
+from ..utils import send_message, edit_message, edit_message_by_id
 
 
 router = Router()
@@ -84,6 +94,19 @@ async def main_menu_message(query: CallbackQuery) -> None:
         )
 
 
+@router.message(F.text == "main_menu")
+async def main_menu(message: Message, bot: Bot) -> None:
+    await message.delete()
+
+    await edit_message_by_id(
+        bot=bot,
+        chat_id=message.chat.id,
+        message_id=message.message_id,
+        db_message_name="start",
+        keyboard=main_menu_keyboard(),
+    )
+
+
 @router.callback_query(F.data == "mu_bonus_card")
 async def bonus_card_message(query: CallbackQuery) -> None:
     await query.answer()
@@ -109,12 +132,9 @@ async def bonus_card_message(query: CallbackQuery) -> None:
     await send_message(message=query.message, message_name="bonus_card", photo=photo)
 
 
-@router.callback_query(F.data == 'catalog')
+@router.callback_query(F.data == "catalog")
 async def catalog(query: CallbackQuery) -> None:
-    await edit_message(
-        message=query.message,
-        message_name="catalog"
-    )
+    await edit_message(message=query.message, message_name="catalog")
 
 
 @router.callback_query(F.data == "contact_us")
@@ -128,3 +148,68 @@ async def contact_request_message(query: CallbackQuery) -> None:
 @router.callback_query(F.data == "social_media")
 async def social_media_message(query: CallbackQuery) -> None:
     await edit_message(message=query.message, message_name="social_media")
+
+
+@router.inline_query(F.query.startswith("promo"))
+async def promo(query: InlineQuery):
+    results = [
+        InlineQueryResultArticle(
+            id="promo",
+            title="🎁 АКЦІЇ",
+            description="Для повного перегляду акції виберіть її",
+            thumbnail_url="https://upload.wikimedia.org/wikipedia/commons/5/59/Empty.png",
+            input_message_content=InputTextMessageContent(
+                message_text="main_menu",
+            ),
+        ),
+    ]
+    promocampaigns = await tg_user_repo.get_promocampaigns()
+    if not promocampaigns:
+        results = [
+            InlineQueryResultArticle(
+                id="a1",
+                title="🎁 АКЦІЇ",
+                description="Поки що немає активних акцій, як тільки вони з'являться ми вас сповістимо",
+                thumbnail_url="https://upload.wikimedia.org/wikipedia/commons/5/59/Empty.png",
+                input_message_content=InputTextMessageContent(
+                    message_text="main_menu",
+                ),
+            ),
+        ]
+
+    logger.info(f"Found {len(promocampaigns)} promo")
+
+    for promo in promocampaigns:
+        desc = (promo.description or "")[:512]
+
+        results.append(
+            InlineQueryResultArticle(
+                id=f"promo-{promo.id}",
+                thumbnail_url="https://i.pinimg.com/1200x/40/04/db/4004dbf92cc3dd544eb1d84237a711b3.jpg",
+                title=promo.name,
+                description=desc,
+                input_message_content=InputTextMessageContent(
+                    message_text=f"promo:{promo.id}",
+                ),
+            )
+        )
+
+    await query.answer(results=results, cache_time=1, is_personal=True)
+
+
+@router.message(F.text.startswith("promo:"))
+async def view_promo(message: Message, bot: Bot) -> None:
+    await message.delete()
+    await bot.delete_message(message.chat.id, message.message_id - 1)
+
+    keyboard = promo_kb()
+    pk = message.text.split(":")[1]
+    promocampaign = await tg_user_repo.get_promo_by_pk(pk)
+    message_text = f"<b>{promocampaign.name}</b>\n\n{promocampaign.description}"
+
+    if promocampaign.image:
+        photo = FSInputFile(promocampaign.image.path)
+        await message.answer_photo(photo=photo, caption=message_text, reply_markup=keyboard)
+        return
+
+    await message.answer(message_text, reply_markup=keyboard)
