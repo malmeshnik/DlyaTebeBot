@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Optional, List, Iterable, Literal
 from datetime import date, datetime
 from decimal import Decimal
+from loguru import logger
 import requests
 
 from pydantic import BaseModel, Field, PrivateAttr, field_validator
@@ -262,8 +263,9 @@ class ApiCRM:
             "gender": gender,
         }
         data = self._post(path, json=body).json()
+        logger.info(f"Activation code received: {data}")
         # якщо бек не повертає профіль — зберемо мінімальний
-        return data.get("activate_code")
+        return data.get("activation_code")
 
     def finish_registration(self, phone: str, activate_code: str) -> RegisterFinishResponse:
         """

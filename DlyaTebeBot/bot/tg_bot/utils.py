@@ -47,10 +47,15 @@ async def send_message(
     user_repo: TgUserRepo = None,
     photo: BufferedInputFile = None,
     keyboard: ReplyKeyboardMarkup | InlineKeyboardMarkup = None,
+    bonus: int = None
 ) -> Message:
     db_message = await DbMessage.objects.prefetch_related("buttons").aget(
         name=message_name
     )
+    if message_name == "bonus_card":
+        message_text = db_message.text.format(bonus = bonus)
+    else:
+        message_text = db_message.text
 
     if not keyboard:
         keyboard = get_keyboard_for_message(db_message)
@@ -63,10 +68,10 @@ async def send_message(
                 photo = FSInputFile(db_message.image.path)
 
         msg = await message.answer_photo(
-            photo=photo, caption=db_message.text, reply_markup=keyboard
+            photo=photo, caption=message_text, reply_markup=keyboard
         )
     else:
-        msg = await message.answer(text=db_message.text, reply_markup=keyboard)
+        msg = await message.answer(text=message_text, reply_markup=keyboard)
 
     if message_name == "start":
         user_id = message.chat.id

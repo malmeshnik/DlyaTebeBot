@@ -60,3 +60,8 @@ class TgUserRepo:
     @sync_to_async
     def get_promo_by_pk(pk: int) -> PromoCampaign:
         return PromoCampaign.objects.get(pk=pk)
+
+    @staticmethod
+    @sync_to_async
+    def get_user(telegram_id: int) -> TgUser | None:
+        return TgUser.objects.filter(telegram_id=telegram_id).first()

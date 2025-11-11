@@ -17,29 +17,42 @@ from aiogram.types import (
 from aiogram.filters.command import CommandStart
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
+from django.conf import settings
 
 from ..repo import MessageRepo, TgUserRepo
 from ..keyboards.user import get_contact_keyboard, main_menu_keyboard, promo as promo_kb
 from ..states import UserStates
 from ..utils import send_message, edit_message, edit_message_by_id
+from ...api import ApiCRM
 
 
 router = Router()
 msg_repo = MessageRepo()
 tg_user_repo = TgUserRepo()
+crm_client = ApiCRM(settings.PHONE_CRM_AUTH, settings.PASSWORD_CRM)
 
 
 @router.message(CommandStart())
 async def start(message: Message, state: FSMContext) -> None:
+    user = await tg_user_repo.get_user(message.from_user.id)
+
+    if not user:
+        await send_message(
+            message=message,
+            message_name="start",
+            user_repo=tg_user_repo,
+            keyboard=get_contact_keyboard(),
+        )
+
+        await state.set_state(UserStates.contact)
+        return 
+    
     await send_message(
         message=message,
-        message_name="start",
+        message_name="contact_received",
         user_repo=tg_user_repo,
-        keyboard=get_contact_keyboard(),
+        keyboard=main_menu_keyboard()
     )
-
-    await state.set_state(UserStates.contact)
-
 
 @router.message(UserStates.contact)
 async def handle_contact(message: Message, state: FSMContext) -> None:
@@ -130,6 +143,7 @@ async def bonus_card_message(query: CallbackQuery) -> None:
     buf = BytesIO()
     img.save(buf, format="PNG")
     photo = BufferedInputFile(buf.getvalue(), filename="bonus_qr.png")
+    consumer = crm_client.get_consumer_info(phone)
 
     await query.message.delete()
     await send_message(
@@ -137,6 +151,7 @@ async def bonus_card_message(query: CallbackQuery) -> None:
         message_name="bonus_card",
         user_repo=tg_user_repo,
         photo=photo,
+        bonus=consumer.bonus
     )
 
 
