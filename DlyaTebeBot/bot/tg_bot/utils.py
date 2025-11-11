@@ -71,7 +71,7 @@ async def send_message(
     if message_name == "start":
         user_id = message.chat.id
         logger.info(f"Saving message with main menu for user: {user_id}, message_id: {msg.message_id}")
-        user_repo.save_main_message(user_id, msg.message_id)
+        await user_repo.save_main_message(user_id, msg.message_id)
 
     return msg
 

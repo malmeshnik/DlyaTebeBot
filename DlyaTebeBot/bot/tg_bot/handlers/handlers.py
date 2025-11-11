@@ -8,7 +8,6 @@ from aiogram.types import (
     CallbackQuery,
     Message,
     BufferedInputFile,
-    InlineQueryResultPhoto,
     ReplyKeyboardRemove,
     InlineQuery,
     InputTextMessageContent,

@@ -33,6 +33,8 @@ DEBUG = os.getenv("DEBUG")
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS").split(",")
 CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS").split(",")[:-1]
 
+BASE_CRM_URL = os.getenv("BASE_URL")
+
 
 # Application definition
 
