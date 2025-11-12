@@ -22,7 +22,7 @@ def main_menu_keyboard() -> ReplyKeyboardMarkup:
         InlineKeyboardButton(text="🎁 Акції", switch_inline_query_current_chat="promo")
     )
     builder.add(
-        InlineKeyboardButton(text="🛍️ Мої покупки", callback_data="my_purchases")
+        InlineKeyboardButton(text="🛍️ Мої покупки", switch_inline_query_current_chat="my_purchaces")
     )
     builder.add(InlineKeyboardButton(text="📦 Каталог", callback_data="catalog"))
     builder.add(

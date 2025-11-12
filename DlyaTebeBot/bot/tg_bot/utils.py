@@ -1,6 +1,9 @@
 import mimetypes
+import json
+from io import BytesIO
 from loguru import logger
 
+import qrcode
 from aiogram import Bot
 from aiogram.types import (
     Message,
@@ -9,6 +12,7 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     InlineKeyboardButton,
     InputMediaPhoto,
+    BufferedInputFile,
     BufferedInputFile,
 )
 from aiogram.exceptions import TelegramBadRequest
@@ -47,15 +51,14 @@ async def send_message(
     user_repo: TgUserRepo = None,
     photo: BufferedInputFile = None,
     keyboard: ReplyKeyboardMarkup | InlineKeyboardMarkup = None,
-    bonus: int = None
+    bonus: int = None,
 ) -> Message:
     db_message = await DbMessage.objects.prefetch_related("buttons").aget(
         name=message_name
     )
-    if message_name == "bonus_card":
-        message_text = db_message.text.format(bonus = bonus)
-    else:
-        message_text = db_message.text
+    message_text = db_message.text.format(
+        bonus=bonus, name=message.from_user.first_name
+    )
 
     if not keyboard:
         keyboard = get_keyboard_for_message(db_message)
@@ -75,7 +78,9 @@ async def send_message(
 
     if message_name == "start":
         user_id = message.chat.id
-        logger.info(f"Saving message with main menu for user: {user_id}, message_id: {msg.message_id}")
+        logger.info(
+            f"Saving message with main menu for user: {user_id}, message_id: {msg.message_id}"
+        )
         await user_repo.save_main_message(user_id, msg.message_id)
 
     return msg
@@ -86,11 +91,13 @@ async def edit_message(
     message_name: str,
     user_repo: TgUserRepo,
     keyboard: ReplyKeyboardMarkup | InlineKeyboardMarkup = None,
+    bonus: int = None,
 ) -> Message:
     logger.info(f"Editing message with name: {message_name}")
     db_message = await DbMessage.objects.prefetch_related("buttons").aget(
         name=message_name
     )
+    message_text = db_message.text.format(bonus=bonus, name=message.chat.first_name)
 
     if not keyboard:
         keyboard = get_keyboard_for_message(db_message)
@@ -99,19 +106,21 @@ async def edit_message(
         mime_type, _ = mimetypes.guess_type(db_message.image.path)
         if mime_type and mime_type.startswith("image/"):
             photo = FSInputFile(db_message.image.path)
-            media = InputMediaPhoto(media=photo, caption=db_message.text)
+            media = InputMediaPhoto(media=photo, caption=message_text)
             msg = await message.edit_media(media=media, reply_markup=keyboard)
-            msg = await message.edit_text(text=db_message.text, reply_markup=keyboard)
+            msg = await message.edit_text(text=message_text, reply_markup=keyboard)
     else:
         try:
-            msg = await message.edit_text(text=db_message.text, reply_markup=keyboard)
+            msg = await message.edit_text(text=message_text, reply_markup=keyboard)
         except:
             await message.delete()
-            msg = await message.answer(text=db_message.text, reply_markup=keyboard)
+            msg = await message.answer(text=message_text, reply_markup=keyboard)
 
     if message_name == "contact_received":
         user_id = message.chat.id
-        logger.info(f"Saving message with main menu for user: {user_id}, message_id: {msg.message_id}")
+        logger.info(
+            f"Saving message with main menu for user: {user_id}, message_id: {msg.message_id}"
+        )
         await user_repo.save_main_message(user_id, msg.message_id)
 
     return msg
@@ -162,3 +171,25 @@ async def edit_message_by_id(
         )
     except TelegramBadRequest:
         return None
+
+
+def generate_qr_code(phone: str) -> BufferedInputFile:
+    data = {"phone": phone}
+    data_text = json.dumps(data, ensure_ascii=False)
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=8,
+        border=2,
+    )
+
+    qr.add_data(data_text)
+    qr.make(fit=True)
+
+    img = qr.make_image(fill_color="black", back_color="white")
+
+    buf = BytesIO()
+    img.save(buf, format="PNG")
+    photo = BufferedInputFile(buf.getvalue(), filename="bonus_qr.png")
+
+    return photo

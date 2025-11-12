@@ -1,13 +1,10 @@
-import json
-from io import BytesIO
 from loguru import logger
+from random import randint
 
-import qrcode
 from aiogram import Router, F, Bot
 from aiogram.types import (
     CallbackQuery,
     Message,
-    BufferedInputFile,
     ReplyKeyboardRemove,
     InlineQuery,
     InputTextMessageContent,
@@ -22,7 +19,7 @@ from django.conf import settings
 from ..repo import MessageRepo, TgUserRepo
 from ..keyboards.user import get_contact_keyboard, main_menu_keyboard, promo as promo_kb
 from ..states import UserStates
-from ..utils import send_message, edit_message, edit_message_by_id
+from ..utils import send_message, edit_message, edit_message_by_id, generate_qr_code
 from ...api import ApiCRM
 
 
@@ -45,14 +42,15 @@ async def start(message: Message, state: FSMContext) -> None:
         )
 
         await state.set_state(UserStates.contact)
-        return 
-    
+        return
+
     await send_message(
         message=message,
         message_name="contact_received",
         user_repo=tg_user_repo,
-        keyboard=main_menu_keyboard()
+        keyboard=main_menu_keyboard(),
     )
+
 
 @router.message(UserStates.contact)
 async def handle_contact(message: Message, state: FSMContext) -> None:
@@ -76,8 +74,6 @@ async def handle_contact(message: Message, state: FSMContext) -> None:
 
     if created:
         logger.info(f"New user created: {tg_user.first_name}")
-
-    # TODO додати логіку збереження номеру телефону користувача та перевірки чи існує в СРМ
 
     if phone_number:
         msg = await message.answer("deletecontact", reply_markup=ReplyKeyboardRemove())
@@ -128,22 +124,8 @@ async def bonus_card_message(query: CallbackQuery) -> None:
     await query.answer()
 
     phone = await tg_user_repo.get_user_phone(telegram_id=query.from_user.id)
-    data = {"phone": phone}
-    data_text = json.dumps(data, ensure_ascii=False)
-    qr = qrcode.QRCode(
-        version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_L,
-        box_size=8,
-        border=2,
-    )
-    qr.add_data(data_text)
-    qr.make(fit=True)
-    img = qr.make_image(fill_color="black", back_color="white")
-
-    buf = BytesIO()
-    img.save(buf, format="PNG")
-    photo = BufferedInputFile(buf.getvalue(), filename="bonus_qr.png")
     consumer = crm_client.get_consumer_info(phone)
+    photo = generate_qr_code(phone)
 
     await query.message.delete()
     await send_message(
@@ -151,7 +133,7 @@ async def bonus_card_message(query: CallbackQuery) -> None:
         message_name="bonus_card",
         user_repo=tg_user_repo,
         photo=photo,
-        bonus=consumer.bonus
+        bonus=consumer.bonus,
     )
 
 
@@ -248,3 +230,51 @@ async def view_promo(message: Message, bot: Bot) -> None:
         return
 
     await message.answer(message_text, reply_markup=keyboard)
+
+
+@router.inline_query(F.query.startswith("my_purchaces"))
+async def inline_my_purchaces(query: InlineQuery):
+    user_phone = await tg_user_repo.get_user_phone(query.from_user.id)
+    cunsomer = crm_client.get_consumer_info(user_phone)
+
+    results = [
+        InlineQueryResultArticle(
+            id="my_purchaces",
+            title="Мої покупки",
+            description="Тут відображаются останні 5 ваших покупок якщо вони існують",
+            thumbnail_url="https://upload.wikimedia.org/wikipedia/commons/5/59/Empty.png",
+            input_message_content=InputTextMessageContent(
+                message_text="main_menu",
+            ),
+        )
+    ]
+
+    if not cunsomer.purchaces:
+        results.append(
+            InlineQueryResultArticle(
+                id="None-purchase",
+                title="Ви ще не зробили жодної покупки 😔",
+                description="Натисніть на це меню щоб відкрити наш каталог 🤗",
+                thumbnail_url="https://upload.wikimedia.org/wikipedia/commons/5/59/Empty.png",
+                input_message_content=InputTextMessageContent(
+                    message_text="catalog",
+                ),
+            )
+        )
+
+    for purchace in cunsomer.purchaces:
+        for product in purchace.products:
+            if not product.product.isdigit():
+                results.append(
+                    InlineQueryResultArticle(
+                        id=f"purchace-{randint(1, 10000)}",
+                        title=product.product,
+                        description=f"Кількість: {product.quantity} Вартість: {product.price}",
+                        thumbnail_url="https://upload.wikimedia.org/wikipedia/commons/5/59/Empty.png",
+                        input_message_content=InputTextMessageContent(
+                            message_text="main_menu",
+                        ),
+                    )
+                )
+
+    await query.answer(results=results, cache_time=1, is_personal=True)

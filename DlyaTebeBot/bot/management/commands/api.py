@@ -18,7 +18,7 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         api = ApiCRM("+380632734275", "TestPassword123")
         print(api.token)
-        consumer = api.get_consumer_info("380969183106")
+        consumer = api.get_consumer_info("+380681404382")
         print(consumer)
         all_purchases = consumer.purchases
         print("Total cached purchases:", len(all_purchases))

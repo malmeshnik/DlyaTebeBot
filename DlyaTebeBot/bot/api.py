@@ -17,7 +17,8 @@ from django.conf import settings
 class PurchaseProduct(BaseModel):
     product: str
     quantity: int
-    price: Decimal  # у відповіді як рядок — парситься у Decimal
+    price: float
+    external_id: str | None = None # у відповіді як рядок — парситься у Decimal
 
 
 class Purchase(BaseModel):
