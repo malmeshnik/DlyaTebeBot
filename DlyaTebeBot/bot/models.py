@@ -24,6 +24,7 @@ help_text_msg = format_html(
 
 # Create your models here.
 class Message(models.Model):
+    """Represents a message that can be sent to a user."""
     name = models.CharField(max_length=200, verbose_name="Назва повідомлення")
     image = models.ImageField(
         upload_to="messages/", blank=True, null=True, verbose_name="Зображення"
@@ -44,6 +45,7 @@ class Message(models.Model):
 
 
 class Button(models.Model):
+    """Represents a button that can be attached to a message."""
     message = models.ForeignKey(
         Message,
         on_delete=models.CASCADE,
@@ -64,6 +66,7 @@ class Button(models.Model):
 
 
 class TgUser(models.Model):
+    """Represents a Telegram user."""
     telegram_id = models.BigIntegerField(unique=True, verbose_name="Telegram ID")
     username = models.CharField(
         max_length=100, verbose_name="Юзернейм", null=True, blank=True
@@ -94,6 +97,7 @@ class TgUser(models.Model):
 
 
 class PromoCampaign(models.Model):
+    """Represents a promotional campaign."""
     name = models.CharField(verbose_name="Назва")
     description = models.TextField(verbose_name="Опис")
     image = models.ImageField(upload_to="promocampaign/")
@@ -105,6 +109,7 @@ class PromoCampaign(models.Model):
 
     @property
     def image_url(self):
+        """Returns the absolute URL of the campaign image."""
         return settings.DOMAIN + self.image.url
 
     class Meta:

@@ -25,6 +25,14 @@ from .repo import TgUserRepo
 def get_keyboard_for_message(
     db_message: DbMessage,
 ) -> ReplyKeyboardMarkup | InlineKeyboardMarkup | None:
+    """Creates a keyboard markup for a message.
+
+    Args:
+        db_message: The message object from the database.
+
+    Returns:
+        An `InlineKeyboardMarkup` object if the message has buttons, otherwise `None`.
+    """
     buttons = list(db_message.buttons.all())
     builder = InlineKeyboardBuilder()
 
@@ -53,6 +61,19 @@ async def send_message(
     keyboard: ReplyKeyboardMarkup | InlineKeyboardMarkup = None,
     bonus: int = None,
 ) -> Message:
+    """Sends a message to the user.
+
+    Args:
+        message: The incoming message object.
+        message_name: The name of the message to send.
+        user_repo: The user repository for database operations.
+        photo: The photo to send with the message.
+        keyboard: The keyboard markup for the message.
+        bonus: The user's bonus points.
+
+    Returns:
+        The sent `Message` object.
+    """
     db_message = await DbMessage.objects.prefetch_related("buttons").aget(
         name=message_name
     )
@@ -93,6 +114,18 @@ async def edit_message(
     keyboard: ReplyKeyboardMarkup | InlineKeyboardMarkup = None,
     bonus: int = None,
 ) -> Message:
+    """Edits an existing message.
+
+    Args:
+        message: The message object to edit.
+        message_name: The name of the new message content.
+        user_repo: The user repository for database operations.
+        keyboard: The new keyboard markup for the message.
+        bonus: The user's bonus points.
+
+    Returns:
+        The edited `Message` object.
+    """
     logger.info(f"Editing message with name: {message_name}")
     db_message = await DbMessage.objects.prefetch_related("buttons").aget(
         name=message_name
@@ -133,6 +166,18 @@ async def edit_message_by_id(
     db_message_name: str,
     keyboard: ReplyKeyboardMarkup | InlineKeyboardMarkup = None,
 ) -> Message:
+    """Edits an existing message by its ID.
+
+    Args:
+        bot: The bot instance.
+        chat_id: The ID of the chat where the message is located.
+        message_id: The ID of the message to edit.
+        db_message_name: The name of the new message content from the database.
+        keyboard: The new keyboard markup for the message.
+
+    Returns:
+        The edited `Message` object, or `None` if an error occurred.
+    """
     db_message = await DbMessage.objects.prefetch_related("buttons").aget(
         name=db_message_name
     )
@@ -174,6 +219,14 @@ async def edit_message_by_id(
 
 
 def generate_qr_code(phone: str) -> BufferedInputFile:
+    """Generates a QR code containing the user's phone number.
+
+    Args:
+        phone: The user's phone number.
+
+    Returns:
+        A `BufferedInputFile` object representing the QR code image.
+    """
     data = {"phone": phone}
     data_text = json.dumps(data, ensure_ascii=False)
     qr = qrcode.QRCode(

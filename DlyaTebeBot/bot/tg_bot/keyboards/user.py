@@ -8,12 +8,22 @@ from aiogram.types import (
 
 
 def get_contact_keyboard() -> ReplyKeyboardMarkup:
+    """Creates a keyboard with a button to request the user's contact information.
+
+    Returns:
+        A `ReplyKeyboardMarkup` object.
+    """
     builder = ReplyKeyboardBuilder()
     builder.add(KeyboardButton(text="Відправити номер телефону", request_contact=True))
     return builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
 
 
 def main_menu_keyboard() -> ReplyKeyboardMarkup:
+    """Creates the main menu keyboard.
+
+    Returns:
+        A `ReplyKeyboardMarkup` object.
+    """
     builder = InlineKeyboardBuilder()
     builder.add(
         InlineKeyboardButton(text="💳 Моя бонусна карта", callback_data="mu_bonus_card")
@@ -37,6 +47,11 @@ def main_menu_keyboard() -> ReplyKeyboardMarkup:
 
 
 def promo() -> InlineKeyboardMarkup:
+    """Creates a keyboard for the promo message.
+
+    Returns:
+        An `InlineKeyboardMarkup` object.
+    """
     builder = InlineKeyboardBuilder()
     builder.add(InlineKeyboardButton(text="📦 Каталог", callback_data="catalog"))
     builder.add(

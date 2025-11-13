@@ -31,6 +31,15 @@ crm_client = ApiCRM(settings.PHONE_CRM_AUTH, settings.PASSWORD_CRM)
 
 @router.message(CommandStart())
 async def start(message: Message, state: FSMContext) -> None:
+    """Handles the /start command.
+
+    If the user is new, it prompts them to share their contact information.
+    Otherwise, it displays the main menu.
+
+    Args:
+        message: The incoming message object.
+        state: The FSM context for managing user states.
+    """
     user = await tg_user_repo.get_user(message.from_user.id)
 
     if not user:
@@ -54,6 +63,15 @@ async def start(message: Message, state: FSMContext) -> None:
 
 @router.message(UserStates.contact)
 async def handle_contact(message: Message, state: FSMContext) -> None:
+    """Handles the user's contact information.
+
+    It extracts the phone number from the message, creates a new user in the database,
+    and displays the main menu.
+
+    Args:
+        message: The incoming message object.
+        state: The FSM context for managing user states.
+    """
     msg = await msg_repo.get_message_by_name("contact_received")
 
     try:
@@ -89,6 +107,13 @@ async def handle_contact(message: Message, state: FSMContext) -> None:
 
 @router.callback_query(F.data == "main_menu")
 async def main_menu_message(query: CallbackQuery) -> None:
+    """Displays the main menu.
+
+    It edits the current message to show the main menu.
+
+    Args:
+        query: The incoming callback query.
+    """
     try:
         await edit_message(
             message=query.message,
@@ -108,6 +133,14 @@ async def main_menu_message(query: CallbackQuery) -> None:
 
 @router.message(F.text == "main_menu")
 async def main_menu(message: Message, bot: Bot) -> None:
+    """Displays the main menu.
+
+    It deletes the incoming message and edits the previous one to show the main menu.
+
+    Args:
+        message: The incoming message object.
+        bot: The bot instance.
+    """
     await message.delete()
 
     await edit_message_by_id(
@@ -121,6 +154,14 @@ async def main_menu(message: Message, bot: Bot) -> None:
 
 @router.callback_query(F.data == "mu_bonus_card")
 async def bonus_card_message(query: CallbackQuery) -> None:
+    """Displays the user's bonus card.
+
+    It retrieves the user's phone number, fetches their bonus card information from the CRM,
+    generates a QR code, and sends it to the user.
+
+    Args:
+        query: The incoming callback query.
+    """
     await query.answer()
 
     phone = await tg_user_repo.get_user_phone(telegram_id=query.from_user.id)
@@ -139,6 +180,13 @@ async def bonus_card_message(query: CallbackQuery) -> None:
 
 @router.callback_query(F.data == "catalog")
 async def catalog(query: CallbackQuery) -> None:
+    """Displays the catalog.
+
+    It edits the current message to show the catalog.
+
+    Args:
+        query: The incoming callback query.
+    """
     await edit_message(
         message=query.message, message_name="catalog", user_repo=tg_user_repo
     )
@@ -146,6 +194,13 @@ async def catalog(query: CallbackQuery) -> None:
 
 @router.callback_query(F.data == "contact_us")
 async def contact_request_message(query: CallbackQuery) -> None:
+    """Displays the contact request message.
+
+    It edits the current message to show the contact request.
+
+    Args:
+        query: The incoming callback query.
+    """
     await edit_message(
         message=query.message,
         message_name="contact_request",
@@ -155,6 +210,13 @@ async def contact_request_message(query: CallbackQuery) -> None:
 
 @router.callback_query(F.data == "social_media")
 async def social_media_message(query: CallbackQuery) -> None:
+    """Displays the social media links.
+
+    It edits the current message to show the social media links.
+
+    Args:
+        query: The incoming callback query.
+    """
     await edit_message(
         message=query.message, message_name="social_media", user_repo=tg_user_repo
     )
@@ -162,6 +224,13 @@ async def social_media_message(query: CallbackQuery) -> None:
 
 @router.inline_query(F.query.startswith("promo"))
 async def promo(query: InlineQuery):
+    """Handles the inline query for promotions.
+
+    It retrieves a list of active promotions and displays them as inline query results.
+
+    Args:
+        query: The incoming inline query.
+    """
     results = [
         InlineQueryResultArticle(
             id="promo",
@@ -209,6 +278,14 @@ async def promo(query: InlineQuery):
 
 @router.message(F.text.startswith("promo:"))
 async def view_promo(message: Message, bot: Bot) -> None:
+    """Displays a specific promotion.
+
+    It retrieves the promotion details from the database and sends them to the user.
+
+    Args:
+        message: The incoming message object.
+        bot: The bot instance.
+    """
     await message.delete()
     try:
         user_id = message.chat.id
@@ -234,6 +311,13 @@ async def view_promo(message: Message, bot: Bot) -> None:
 
 @router.inline_query(F.query.startswith("my_purchaces"))
 async def inline_my_purchaces(query: InlineQuery):
+    """Handles the inline query for user purchases.
+
+    It retrieves the user's purchase history from the CRM and displays it as inline query results.
+
+    Args:
+        query: The incoming inline query.
+    """
     user_phone = await tg_user_repo.get_user_phone(query.from_user.id)
     cunsomer = crm_client.get_consumer_info(user_phone)
 

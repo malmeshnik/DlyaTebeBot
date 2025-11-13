@@ -4,6 +4,7 @@ from .models import Message, TgUser, Button, PromoCampaign
 
 
 class ButtonInline(admin.TabularInline):
+    """An inline admin descriptor for the `Button` model."""
     model = Button
     extra = 1
     fields = ("text", "url", "created_at", "updated_at")
@@ -12,6 +13,7 @@ class ButtonInline(admin.TabularInline):
 
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
+    """The admin model for the `Message` model."""
     list_display = ("name", "created_at", "updated_at")
     search_fields = ("name",)
     readonly_fields = ("created_at", "updated_at")
@@ -21,6 +23,7 @@ class MessageAdmin(admin.ModelAdmin):
 
 @admin.register(TgUser)
 class TgUserAdmin(admin.ModelAdmin):
+    """The admin model for the `TgUser` model."""
     list_display = (
         "telegram_id",
         "username",
@@ -42,6 +45,7 @@ class TgUserAdmin(admin.ModelAdmin):
 
 @admin.register(PromoCampaign)
 class PromoCampaignAdmin(admin.ModelAdmin):
+    """The admin model for the `PromoCampaign` model."""
     list_display = (
         "name",
         "start_date",

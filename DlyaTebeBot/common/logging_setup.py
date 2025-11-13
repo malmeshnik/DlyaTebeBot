@@ -17,7 +17,13 @@ logger.add(
 )
 
 class InterceptHandler(logging.Handler):
+    """A logging handler that intercepts standard logging messages and redirects them to Loguru."""
     def emit(self, record):
+        """Emits a log record.
+
+        Args:
+            record: The log record to emit.
+        """
         try:
             level = record.levelname
         except Exception:
@@ -27,6 +33,7 @@ class InterceptHandler(logging.Handler):
 logging.basicConfig(handlers=[InterceptHandler()], level=LOG_LEVEL)
 
 def setup_logger():
+    """Sets up the logger and redirects standard logging messages to Loguru."""
     logging.getLogger("uvicorn").handlers = [InterceptHandler()]
     logging.getLogger("aiohttp").handlers = [InterceptHandler()]
     logging.getLogger("django").handlers = [InterceptHandler()]

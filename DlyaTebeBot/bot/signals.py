@@ -11,6 +11,10 @@ crm_client = ApiCRM(settings.PHONE_CRM_AUTH, settings.PASSWORD_CRM)
 
 @receiver(post_save, sender=TgUser)
 def check_CRM_consumer(sender, instance: TgUser, created: bool, **kwargs):
+    """
+    Checks if a newly created `TgUser` exists as a consumer in the CRM.
+    If not, it creates a new consumer in the CRM.
+    """
     if not created:
         return
 
