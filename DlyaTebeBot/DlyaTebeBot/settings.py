@@ -31,7 +31,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 DEBUG = os.getenv("DEBUG")
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS").split(",")
-CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS").split(",")[:-1]
+CSRF_TRUSTED_ORIGINS = ["https://53e56e851504.ngrok-free.app"] #os.getenv("CSRF_TRUSTED_ORIGINS").split(",")[:-1]
 
 BASE_CRM_URL = os.getenv("BASE_URL")
 PHONE_CRM_AUTH = os.getenv("CRM_PHONE")

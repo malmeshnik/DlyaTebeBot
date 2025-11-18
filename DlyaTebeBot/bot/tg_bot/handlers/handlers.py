@@ -31,6 +31,7 @@ crm_client = ApiCRM(settings.PHONE_CRM_AUTH, settings.PASSWORD_CRM)
 
 @router.message(CommandStart())
 async def start(message: Message, state: FSMContext) -> None:
+    await message.delete()
     user = await tg_user_repo.get_user(message.from_user.id)
 
     if not user:
@@ -53,7 +54,10 @@ async def start(message: Message, state: FSMContext) -> None:
 
 
 @router.message(UserStates.contact)
-async def handle_contact(message: Message, state: FSMContext) -> None:
+async def handle_contact(message: Message, bot: Bot, state: FSMContext) -> None:
+    await message.delete()
+    await bot.delete_message(message.chat.id, message.message_id - 1)
+
     msg = await msg_repo.get_message_by_name("contact_received")
 
     try:
@@ -116,6 +120,18 @@ async def main_menu(message: Message, bot: Bot) -> None:
         message_id=message.message_id,
         db_message_name="start",
         keyboard=main_menu_keyboard(),
+    )
+
+@router.message(F.text == 'catalog')
+async def catalog(message: Message, bot: Bot) -> None:
+    await message.delete()
+    main_menu_id = await tg_user_repo.get_main_message_id(message.from_user.id)
+
+    await edit_message_by_id(
+        bot=bot,
+        chat_id=message.chat.id,
+        message_id=main_menu_id,
+        db_message_name="catalog"
     )
 
 
@@ -186,8 +202,6 @@ async def promo(query: InlineQuery):
                 ),
             ),
         ]
-
-    logger.info(f"Found {len(promocampaigns)} promo")
 
     for promo in promocampaigns:
         desc = (promo.description or "")[:512]
@@ -262,12 +276,12 @@ async def inline_my_purchaces(query: InlineQuery):
             )
         )
 
-    for purchace in cunsomer.purchaces:
+    for purchace in cunsomer.purchaces[:5]:
         for product in purchace.products:
             if not product.product.isdigit():
                 results.append(
                     InlineQueryResultArticle(
-                        id=f"purchace-{randint(1, 10000)}",
+                        id=f"purchace-{product.product}",
                         title=product.product,
                         description=f"Кількість: {product.quantity} Вартість: {product.price}",
                         thumbnail_url="https://upload.wikimedia.org/wikipedia/commons/5/59/Empty.png",

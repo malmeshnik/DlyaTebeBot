@@ -1,10 +1,10 @@
-import os
 import asyncio
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
+# from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from common.logging_setup import setup_logger
 from bot.tg_bot import handlers

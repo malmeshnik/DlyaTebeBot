@@ -295,7 +295,7 @@ if __name__ == "__main__":
 
     # покупки БЕЗ фільтрів — через властивість (закешує):
     all_purchases = consumer.purchases
-    print("Total cached purchases:", len(all_purchases))
+    print(all_purchases)
 
     # покупки З фільтрами дат (без кешу):
     ranged = consumer.get_purchases(date_from="2020-12-29", date_to="2025-12-30", limit_per_page=500)

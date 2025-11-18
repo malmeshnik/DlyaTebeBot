@@ -15,6 +15,16 @@ services:
     depends_on:
       - db
 
+  schedulers:
+    build: .
+    command: python manage.py scheduler
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - db
+
   bot:
     build: .
     command: python manage.py startbot

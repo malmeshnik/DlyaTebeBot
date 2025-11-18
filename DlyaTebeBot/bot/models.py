@@ -19,10 +19,10 @@ help_text_msg = format_html(
         "Клікабельний текст",
     ),
     "{bonus} = Кількість бонусів користувача",
-    "{name} = Ім'я користувача"
+    "{name} = Ім'я користувача",
 )
 
-# Create your models here.
+
 class Message(models.Model):
     name = models.CharField(max_length=200, verbose_name="Назва повідомлення")
     image = models.ImageField(
@@ -110,3 +110,20 @@ class PromoCampaign(models.Model):
     class Meta:
         verbose_name = "Акція"
         verbose_name_plural = "Акції"
+
+
+class BroadcastMessage(Message):
+    scheduled_at = models.DateTimeField(
+        verbose_name="Дата та час відправки повідомлення",
+        blank=True,
+        null=True,
+        help_text="Якщо не вказати буде відправлено відразу",
+    )
+    send = models.BooleanField(default=False, verbose_name="Відправлено")
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Розсилка"
+        verbose_name_plural = "Розсилки"

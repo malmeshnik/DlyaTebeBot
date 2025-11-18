@@ -1,7 +1,7 @@
 from django.utils import timezone
 from asgiref.sync import sync_to_async
 
-from ..models import Message, TgUser, PromoCampaign
+from ..models import Message, TgUser, PromoCampaign, BroadcastMessage
 
 
 class MessageRepo:
@@ -65,3 +65,20 @@ class TgUserRepo:
     @sync_to_async
     def get_user(telegram_id: int) -> TgUser | None:
         return TgUser.objects.filter(telegram_id=telegram_id).first()
+
+    @staticmethod
+    @sync_to_async
+    def get_all_users() -> list[TgUser]:
+        return list(TgUser.objects.all())
+
+
+class BroadCastMessageRepo:
+    @staticmethod
+    @sync_to_async
+    def get_ready_messages():
+        now = timezone.now()
+        qs = BroadcastMessage.objects.filter(
+            scheduled_at__lte=now,
+            send=False
+        )
+        return list(qs)

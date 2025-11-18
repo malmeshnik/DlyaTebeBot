@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Message, TgUser, Button, PromoCampaign
+from .models import Message, TgUser, Button, PromoCampaign, BroadcastMessage
 
 
 class ButtonInline(admin.TabularInline):
@@ -49,3 +49,8 @@ class PromoCampaignAdmin(admin.ModelAdmin):
     )
     search_fields = ("name",)
     
+
+@admin.register(BroadcastMessage)
+class BroadCastMessageAdmin(admin.ModelAdmin):
+    list_display = ("name", "scheduled_at", "send",)
+    inlines = [ButtonInline]
