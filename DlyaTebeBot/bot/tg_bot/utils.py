@@ -1,56 +1,52 @@
 import mimetypes
-import json
-from io import BytesIO
+from typing import Tuple
+
+from aiogram import Bot
+from aiogram.exceptions import TelegramBadRequest
+from aiogram.types import (
+    BufferedInputFile,
+    FSInputFile,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    InputMediaPhoto,
+    Message,
+    ReplyKeyboardMarkup,
+)
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 from loguru import logger
 
-import qrcode
-from aiogram import Bot
-from aiogram.types import (
-    Message,
-    FSInputFile,
-    ReplyKeyboardMarkup,
-    InlineKeyboardMarkup,
-    InlineKeyboardButton,
-    InputMediaPhoto,
-    BufferedInputFile,
-    BufferedInputFile,
-)
-from aiogram.exceptions import TelegramBadRequest
-from aiogram.utils.keyboard import InlineKeyboardBuilder
-
-from ..models import Message as DbMessage
-from .repo import TgUserRepo
+from bot.models import Message as DbMessage
+from bot.tg_bot.repo import TgUserRepo
 
 
 def get_keyboard_for_message(
     db_message: DbMessage,
 ) -> ReplyKeyboardMarkup | InlineKeyboardMarkup | None:
-    """Creates a keyboard markup for a message.
-
-    Args:
-        db_message: The message object from the database.
-
-    Returns:
-        An `InlineKeyboardMarkup` object if the message has buttons, otherwise `None`.
-    """
+    """Creates a keyboard markup for a message."""
     buttons = list(db_message.buttons.all())
     builder = InlineKeyboardBuilder()
 
     if buttons:
-
         for button in db_message.buttons.all():
-            builder.add(
-                InlineKeyboardButton(
-                    text=button.text,
-                    url=button.url,
-                )
-            )
+            builder.add(InlineKeyboardButton(text=button.text, url=button.url))
 
     builder.row(
         InlineKeyboardButton(text="⬅️ Повернутися в меню", callback_data="main_menu")
     )
 
     return builder.as_markup()
+
+
+async def _prepare_message(
+    message_name: str, from_user_name: str, bonus: int = None
+) -> Tuple[str, InlineKeyboardMarkup | ReplyKeyboardMarkup, DbMessage]:
+    """Prepares a message for sending."""
+    db_message = await DbMessage.objects.prefetch_related("buttons").aget(
+        name=message_name
+    )
+    message_text = db_message.text.format(bonus=bonus, name=from_user_name)
+    keyboard = get_keyboard_for_message(db_message)
+    return message_text, keyboard, db_message
 
 
 async def send_message(
@@ -61,34 +57,16 @@ async def send_message(
     keyboard: ReplyKeyboardMarkup | InlineKeyboardMarkup = None,
     bonus: int = None,
 ) -> Message:
-    """Sends a message to the user.
-
-    Args:
-        message: The incoming message object.
-        message_name: The name of the message to send.
-        user_repo: The user repository for database operations.
-        photo: The photo to send with the message.
-        keyboard: The keyboard markup for the message.
-        bonus: The user's bonus points.
-
-    Returns:
-        The sent `Message` object.
-    """
-    db_message = await DbMessage.objects.prefetch_related("buttons").aget(
-        name=message_name
+    """Sends a message to the user."""
+    message_text, default_keyboard, db_message = await _prepare_message(
+        message_name, message.from_user.first_name, bonus
     )
-    message_text = db_message.text.format(
-        bonus=bonus, name=message.from_user.first_name
-    )
-
-    if not keyboard:
-        keyboard = get_keyboard_for_message(db_message)
+    keyboard = keyboard or default_keyboard
 
     if photo or db_message.image:
         if not photo:
             mime_type, _ = mimetypes.guess_type(db_message.image.path)
             if mime_type and mime_type.startswith("image/"):
-
                 photo = FSInputFile(db_message.image.path)
 
         msg = await message.answer_photo(
@@ -114,26 +92,12 @@ async def edit_message(
     keyboard: ReplyKeyboardMarkup | InlineKeyboardMarkup = None,
     bonus: int = None,
 ) -> Message:
-    """Edits an existing message.
-
-    Args:
-        message: The message object to edit.
-        message_name: The name of the new message content.
-        user_repo: The user repository for database operations.
-        keyboard: The new keyboard markup for the message.
-        bonus: The user's bonus points.
-
-    Returns:
-        The edited `Message` object.
-    """
+    """Edits an existing message."""
     logger.info(f"Editing message with name: {message_name}")
-    db_message = await DbMessage.objects.prefetch_related("buttons").aget(
-        name=message_name
+    message_text, default_keyboard, db_message = await _prepare_message(
+        message_name, message.chat.first_name, bonus
     )
-    message_text = db_message.text.format(bonus=bonus, name=message.chat.first_name)
-
-    if not keyboard:
-        keyboard = get_keyboard_for_message(db_message)
+    keyboard = keyboard or default_keyboard
 
     if db_message.image:
         mime_type, _ = mimetypes.guess_type(db_message.image.path)
@@ -141,11 +105,12 @@ async def edit_message(
             photo = FSInputFile(db_message.image.path)
             media = InputMediaPhoto(media=photo, caption=message_text)
             msg = await message.edit_media(media=media, reply_markup=keyboard)
+        else:
             msg = await message.edit_text(text=message_text, reply_markup=keyboard)
     else:
         try:
             msg = await message.edit_text(text=message_text, reply_markup=keyboard)
-        except:
+        except TelegramBadRequest:
             await message.delete()
             msg = await message.answer(text=message_text, reply_markup=keyboard)
 
@@ -166,24 +131,11 @@ async def edit_message_by_id(
     db_message_name: str,
     keyboard: ReplyKeyboardMarkup | InlineKeyboardMarkup = None,
 ) -> Message:
-    """Edits an existing message by its ID.
-
-    Args:
-        bot: The bot instance.
-        chat_id: The ID of the chat where the message is located.
-        message_id: The ID of the message to edit.
-        db_message_name: The name of the new message content from the database.
-        keyboard: The new keyboard markup for the message.
-
-    Returns:
-        The edited `Message` object, or `None` if an error occurred.
-    """
+    """Edits an existing message by its ID."""
     db_message = await DbMessage.objects.prefetch_related("buttons").aget(
         name=db_message_name
     )
-
-    if keyboard is None:
-        keyboard = get_keyboard_for_message(db_message)
+    keyboard = keyboard or get_keyboard_for_message(db_message)
 
     if db_message.image:
         mime, _ = mimetypes.guess_type(db_message.image.path)
@@ -216,33 +168,3 @@ async def edit_message_by_id(
         )
     except TelegramBadRequest:
         return None
-
-
-def generate_qr_code(phone: str) -> BufferedInputFile:
-    """Generates a QR code containing the user's phone number.
-
-    Args:
-        phone: The user's phone number.
-
-    Returns:
-        A `BufferedInputFile` object representing the QR code image.
-    """
-    data = {"phone": phone}
-    data_text = json.dumps(data, ensure_ascii=False)
-    qr = qrcode.QRCode(
-        version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_L,
-        box_size=8,
-        border=2,
-    )
-
-    qr.add_data(data_text)
-    qr.make(fit=True)
-
-    img = qr.make_image(fill_color="black", back_color="white")
-
-    buf = BytesIO()
-    img.save(buf, format="PNG")
-    photo = BufferedInputFile(buf.getvalue(), filename="bonus_qr.png")
-
-    return photo

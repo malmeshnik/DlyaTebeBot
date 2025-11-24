@@ -4,10 +4,10 @@ from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from .api import ApiCRM
 from .models import TgUser
+from .services.crm.client import CRMClient
 
-crm_client = ApiCRM(settings.PHONE_CRM_AUTH, settings.PASSWORD_CRM)
+crm_client = CRMClient(settings.PHONE_CRM_AUTH, settings.PASSWORD_CRM)
 
 @receiver(post_save, sender=TgUser)
 def check_CRM_consumer(sender, instance: TgUser, created: bool, **kwargs):
