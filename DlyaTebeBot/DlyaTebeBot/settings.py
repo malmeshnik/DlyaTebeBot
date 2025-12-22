@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "easymde",
     "bot",
+    "viber_bot",
 ]
 
 MIDDLEWARE = [
@@ -149,3 +150,8 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 DOMAIN = os.getenv("DOMAIN")
+
+# Viber
+VIBER_BOT_TOKEN = os.getenv("VIBER_BOT_TOKEN")
+VIBER_WEBHOOK_BASE_URL = os.getenv("VIBER_WEBHOOK_BASE_URL")
+VIBER_WEBHOOK_PATH = os.getenv("VIBER_WEBHOOK_PATH")
