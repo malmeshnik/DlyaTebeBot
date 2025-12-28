@@ -4,15 +4,26 @@ from dataclasses import dataclass
 
 @dataclass
 class Button:
-    text: str
-    action: str
+    text: str = ""
+    action: str = None
+    action_type: str = None
+    action_body: str = None
     columns: int = 6
-    rows: int = 2
-    bg_color: str = '#0A5ED7'
-    text_color: str = '#FFFFFF'
+    rows: int = 1
+    bg_color: str = "#FFFFFF"
+    text_color: str = "#FFFFFF"
     silent: bool = True
     text_bg_gradient_color: Optional[str] = None
-    action_type: str = "reply"
+
+    border_width: int = None
+    border_color: str = None
+    corner_radius: int = None
+
+    text_size: str = "medium"
+    text_h_align: str = "middle"
+    text_v_align: str = "middle"
+
+    image: str = None
 
     def to_dict(self) -> dict:
         data = {
@@ -23,13 +34,29 @@ class Button:
             "TextColor": self.text_color,
             "Silent": self.silent,
             "ActionType": self.action_type,
+            "TextSize": self.text_size,
+            "TextHAlign": self.text_h_align,
+            "TextVAlign": self.text_v_align,
+            "Image": self.image,
         }
-        if self.action_type == "share-phone":
+
+        if self.action_body:
+            data["ActionBody"] = self.action_body
+
+        elif self.action_type == "share-phone":
             data["ActionBody"] = " "
         else:
             data["ActionBody"] = self.action
+
         if self.text_bg_gradient_color:
             data["TextBgGradientColor"] = self.text_bg_gradient_color
+
+        data["Frame"] = {
+            "BorderWidth": self.border_width,
+            "BorderColor": self.border_color,
+            "CornerRadius": self.corner_radius,
+        }
+
         return data
 
 
@@ -68,29 +95,42 @@ class Keyboard:
         return {
             "Type": "keyboard",
             "DefaultHeight": self.default_height,
+            "BgColor": "#FFFFFF",
             "Buttons": kb_buttons,
         }
 
-
+def create_menu_button(text: str, action_body: str) -> Button:
+    return Button(
+        text=f"<b>{text}</b>",
+        action_type="reply",
+        action_body=action_body,
+        text_size="large",
+    )
 
 def main_menu():
     kb = Keyboard()
     kb.add(
-        Button(text="💳 Моя бонусна карта", action="my_bonus_card"),
-        Button(text="🎁 Акції", action="promo"),
-        Button(text="🛍️ Мої покупки", action="my_purchaces"),
+        create_menu_button("💳 Моя бонусна карта", "my_bonus_card"),
+        create_menu_button("🎁 Акції", "promo"),
+        create_menu_button("🛍️ Мої покупки", "my_purchaces"),
     ).row(
-        Button(text="📦 Каталог", action="catalog"),
-        Button(text="☎️ Зв'язатися з нами", action="contact_us"),
-        Button(text="📱 Instagram, TikTok", action="social_media"),
+        create_menu_button("📦 Каталог", "catalog"),
+        create_menu_button("☎️ Зв'язатися з нами", "contact_us"),
+        create_menu_button("📱 Instagram, TikTok", "social_media"),
     )
 
-    kb.adjust(columns=3, rows=1, resize=True)
+    kb.adjust(columns=3, rows=1, resize=False)
     return kb.to_dict()
 
 
 def contact():
     kb = Keyboard()
-    kb.add(Button(text="📞 Відправити мій номер телефону", action=" ", action_type="share-phone"))
+    kb.add(
+        Button(
+            text="📞 Відправити мій номер телефону",
+            action=" ",
+            action_type="share-phone",
+        )
+    )
     kb.resize_buttons(columns=3, rows=1)
     return kb.to_dict()

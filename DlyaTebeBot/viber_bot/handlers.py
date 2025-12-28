@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 import logging
 from datetime import datetime
 
@@ -6,15 +6,24 @@ from viberbot.api.viber_requests import (
     ViberMessageRequest,
     ViberConversationStartedRequest,
 )
-from viberbot.api.messages import TextMessage, KeyboardMessage
+from viberbot.api.messages import ContactMessage, TextMessage
 
-from .fsm import get_state, set_state, clear_state
-from .keyboards import Button, contact, main_menu
+from .services import ViberService
+from .repo import ViberUserRepo, PromoCampaignRepo
+from .fsm import get_state
+from bot.api import ApiCRM
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s"
 )
+
+# Ініціалізація сервісу
+repo = ViberUserRepo()
+promo_repo = PromoCampaignRepo()
+crm_client = ApiCRM(settings.PHONE_CRM_AUTH, settings.PASSWORD_CRM)
+service = ViberService(repo, promo_repo, crm_client)
 
 handlers = []
 
@@ -22,33 +31,15 @@ handlers = []
 def viber_handler(
     text: str = None, state: Any = None, request_type=ViberMessageRequest
 ):
-    """
-    Docstring for viber_handler
-
-    :param text: Text button/command, then filtered
-    :type text: str
-    :param state: State user, ho use this handler
-    :type state: Any
-    :param request_type: Request type (ViberMessageRequest, ViberConversationStartedRequest, ...)
-    """
-
     def decorator(func):
         handlers.append(
             {"type": request_type, "text": text, "state": state, "func": func}
         )
-
         return func
-
     return decorator
 
 
-def handle_request(viber_request, viber=None):
-    """
-    Docstring for handle_request
-
-    :param viber_request: Description
-    """
-
+def handle_request(viber_request: Any, viber: Optional[Any] = None) -> None:
     user_id = getattr(getattr(viber_request, "sender", None), "id", None)
     if user_id is None:
         user_id = getattr(getattr(viber_request, "user", None), "id", None)
@@ -69,104 +60,108 @@ def handle_request(viber_request, viber=None):
     for h in handlers:
         if h["type"] and not isinstance(viber_request, h["type"]):
             continue
-
         if isinstance(viber_request, ViberMessageRequest):
             message = viber_request.message
-
-            text = ""
-            action = None
-
-            if hasattr(message, "text"):
-                text = (message.text or "").strip()
-                action = getattr(message, "action_body", text)
-
-            elif hasattr(message, "contact"):
-                text = message.contact.phone_number
-                action = "__CONTACT__"
-
-            user_id = viber_request.sender.id
-            user_state = get_state(user_id)
-
+            text = getattr(message, "text", "").strip()
+            action = getattr(message, "action_body", text)
             if h["text"] and h["text"] != action:
                 continue
-
-            if h["state"] and h["state"] != user_state:
+            if h["state"] and h["state"] != get_state(user_id):
                 continue
-
         h["func"](viber_request, viber)
         break
 
 
-def send_text(viber, user_id, text):
-    """
-    Відправка текстового повідомлення користувачу
-
-    :param viber: обʼєкт viber Api
-    :param user_id: ID користувача
-    :param text: текст повідомлення
-    """
-    viber.send_messages(user_id, [TextMessage(text=text)])
-
-
 @viber_handler(text="hello")
-def hello(viber_request, viber=None):
+def hello(viber_request: Any, viber: Optional[Any] = None) -> None:
     user_id = viber_request.sender.id
+    from .fsm import set_state
+    from .keyboards import contact
     set_state(user_id, "contact")
-    viber.send_messages(
-        user_id,
-        [
-            TextMessage(
-                text="Shut up Nigga",
-                keyboard=main_menu(),
-                min_api_version=3,
-            )
-        ],
-    )
+    messages = [
+        TextMessage(
+            text="Введіть номер у форматі 380XXXXXXX, або ж натисніть кнопку нижче",
+            keyboard=contact(),
+            min_api_version=6,
+        )
+    ]
+    viber.send_messages(user_id, messages)
 
 
 @viber_handler(text="__CHECK_PRICE__")
-def check_price(viber_request, viber=None):
+def check_price(viber_request: Any, viber: Optional[Any] = None) -> None:
     user_id = viber_request.sender.id
+    messages = service.handle_default()
+    viber.send_messages(user_id, messages)
 
-    send_text(viber, user_id, "Введи назву товару")
 
-
-@viber_handler(text="__CONTACT__", state="contact")
-def handle_contact(viber_request, viber=None):
+@viber_handler(state="contact")
+def handle_contact(viber_request: Any, viber: Optional[Any] = None) -> None:
     user_id = viber_request.sender.id
-    phone = viber_request.message.contact.phone_number
-
-    clear_state(user_id)
-
-    viber.send_messages(
-        user_id,
-        [
+    phone = ""
+    if isinstance(viber_request.message, ContactMessage):
+        phone = viber_request.message.contact.phone_number
+    elif hasattr(viber_request.message, 'text') and viber_request.message.text.isdigit():
+        phone = viber_request.message.text
+    else:
+        from .keyboards import contact
+        messages = [
             TextMessage(
-                text=f"Дякую! Отримали номер: {phone}",
-                keyboard=main_menu(),
-                min_api_version=3,
+                text="Введіть номер у форматі 380XXXXXXX, або ж натисніть кнопку нижче",
+                keyboard=contact(),
+                min_api_version=6,
             )
-        ],
-    )
+        ]
+        viber.send_messages(user_id, messages)
+        return
+    messages = service.handle_contact(user_id, viber_request.sender.name, phone)
+    viber.send_messages(user_id, messages)
 
 
 @viber_handler(request_type=ViberConversationStartedRequest)
-def handle_start_request(viber_request, viber=None):
+def handle_start_request(viber_request: Any, viber: Optional[Any] = None) -> None:
     user_id = viber_request.user.id
-    viber.send_messages(
-        user_id,
-        [
-            TextMessage(
-                text="Вітаю! Для продовження роботи відправте ваш номер телефону за допомогою кнопки 👇або введіть номер у форматі 380XXXXXXX",
-                keyboard=contact(),
-                min_api_version=3,
-            )
-        ],
-    )
-    set_state(user_id, "contact")
+    messages = service.handle_start(user_id, viber_request.user.name)
+    viber.send_messages(user_id, messages)
 
 
-# @viber_handler()
-# def answer_to_message(viber_request, viber=None):
-#     user_id = viber_request.sender.id
-#     viber.send_messages(user_id, [TextMessage(text=viber_request.message.text)])
+@viber_handler(text="my_bonus_card")
+def handle_bonus_card(viber_request: Any, viber: Optional[Any] = None) -> None:
+    user_id = viber_request.sender.id
+    messages = service.handle_bonus_card(user_id)
+    viber.send_messages(user_id, messages)
+
+
+@viber_handler(text="contact_us")
+def handle_contact_us(viber_request: Any, viber: Optional[Any] = None) -> None:
+    user_id = viber_request.sender.id
+    messages = service.handle_contact_us()
+    viber.send_messages(user_id, messages)
+
+
+@viber_handler(text="social_media")
+def handel_social_media(viber_request: Any, viber: Optional[Any] = None) -> None:
+    user_id = viber_request.sender.id
+    messages = service.handle_social_media()
+    viber.send_messages(user_id, messages)
+
+
+@viber_handler(text="promo")
+def promocampaigns(viber_request: Any, viber: Optional[Any] = None) -> None:
+    user_id = viber_request.sender.id
+    messages = service.handle_promo()
+    viber.send_messages(user_id, messages)
+
+
+@viber_handler(text="my_purchaces")
+def handle_purchaces(viber_request: Any, viber: Optional[Any] = None) -> None:
+    user_id = viber_request.sender.id
+    messages = service.handle_purchases(user_id)
+    viber.send_messages(user_id, messages)
+
+
+@viber_handler(request_type=ViberMessageRequest)
+def answer_to_message(viber_request: Any, viber: Optional[Any] = None) -> None:
+    user_id = viber_request.sender.id
+    messages = service.handle_default()
+    viber.send_messages(user_id, messages)
