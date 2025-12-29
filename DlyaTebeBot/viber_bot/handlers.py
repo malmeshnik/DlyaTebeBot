@@ -169,7 +169,23 @@ def handle_purchaces(viber_request: Any, viber: Optional[Any] = None) -> None:
     viber.send_messages(user_id, messages)
 
 
-@viber_handler(request_type=ViberMessageRequest)
+@viber_handler(match="startswith", text="details_")
+def handle_purchase_details(viber_request: Any, viber: Optional[Any] = None) -> None:
+    purchase_id = int(viber_request.message.text.split("_")[1])
+    user_id = viber_request.sender.id
+    messages = service.handle_purchase_detail(user_id, purchase_id)
+    viber.send_messages(user_id, messages)
+
+
+@viber_handler(match="startswith", text="promo_")
+def handle_promo_details(viber_request: Any, viber: Optional[Any] = None) -> None:
+    promo_id = int(viber_request.message.text.split("_")[1])
+    user_id = viber_request.sender.id
+    messages = service.handle_promo_details(promo_id)
+    viber.send_messages(user_id, messages)
+
+
+@viber_handler(request_type=TextMessage)
 def answer_to_message(viber_request: Any, viber: Optional[Any] = None) -> None:
     user_id = viber_request.sender.id
     messages = service.handle_default()

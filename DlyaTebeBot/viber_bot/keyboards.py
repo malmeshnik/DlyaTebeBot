@@ -116,7 +116,7 @@ def main_menu():
         create_menu_button("🛍️ Мої покупки", "my_purchaces"),
     ).row(
         Button(
-            text="<b>📞 Зв'язатися з нами</b>",
+            text="<b>📦 Каталог</b>",
             action_type="open-url",
             action_body=SOCIAL_MEDIA_URLS["catalog"],
             text_size="large",

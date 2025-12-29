@@ -81,6 +81,17 @@ class ViberService:
                 keyboard=main_menu(),
             )
         ]
+    
+    def handle_promo_details(self, promo_id: int) -> List[PictureMessage]:
+        promo = self.promo_repo.get_promo(promo_id)
+        return [
+            PictureMessage(
+                text=f"{promo.name}\n\n{promo.description}",
+                media=promo.image_url,
+                keyboard=main_menu(),
+                min_api_version=6
+            )
+        ]
 
     def handle_purchases(self, user_id: str) -> List[RichMediaMessage]:
         phone = self.repo.get_phone(user_id)
@@ -93,8 +104,9 @@ class ViberService:
                     min_api_version=6,
                 )
             ]
+        purchases = consumer.purchaces[-5:]
         builder = PurchaseCardBuilder()
-        for purchase in consumer.purchaces:
+        for purchase in purchases:
             builder.add_header(purchase)
             builder.add_row("Сума:", f"{purchase.sum} грн", "sum", "sum_value")
             builder.add_row(
@@ -102,6 +114,40 @@ class ViberService:
             )
             builder.add_row("Загалом", f"{purchase.total} грн", "total", "total_value")
             builder.add_detail_button(purchase.id)
+        return [
+            RichMediaMessage(
+                rich_media=builder.build_rich_media(),
+                min_api_version=6,
+                keyboard=main_menu(),
+            )
+        ]
+
+    def handle_purchase_detail(self, user_id: str, purchase_id: int) -> list[RichMediaMessage]:
+        phone = self.repo.get_phone(user_id)
+        consumer = self.crm_client.get_consumer_info(phone)
+        purchase = next(
+            (p for p in consumer.purchaces if p.id == purchase_id), None
+        )
+        
+        if not purchase:
+            return [
+                TextMessage(
+                    text="Деталі покупки не знайдені.",
+                    keyboard=main_menu(),
+                    min_api_version=6,
+                )
+            ]
+        
+        builder = PurchaseCardBuilder()
+        builder.add_row("<b>ТОВАР</b>", "<b>ГРН</b>", "header_product", "header_price")
+        for product in purchase.products:
+            builder.add_row(
+                f"{product.quantity} x {product.product}",
+                f"{product.price}",
+                f"product_{product.product}",
+                f"price_{product.product}",
+            )
+
         return [
             RichMediaMessage(
                 rich_media=builder.build_rich_media(),
