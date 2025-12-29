@@ -1,13 +1,7 @@
 import os
 import qrcode
-from typing import List
 
 from django.conf import settings
-from viberbot.api.messages import PictureMessage
-
-from .keyboards import Button
-from .models import PromoCampaign
-from bot.api import Purchase
 
 
 def generate_qr_code(phone_number: str) -> str:

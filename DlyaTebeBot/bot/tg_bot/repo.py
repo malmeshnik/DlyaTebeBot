@@ -1,17 +1,6 @@
-from django.utils import timezone
 from asgiref.sync import sync_to_async
 
-from ..models import Message, TgUser, PromoCampaign, BroadcastMessage
-
-
-class MessageRepo:
-    @staticmethod
-    @sync_to_async
-    def get_message_by_name(name: str) -> Message | None:
-        try:
-            return Message.objects.get(name=name)
-        except Message.DoesNotExist:
-            return None
+from ..models import TgUser
 
 
 class TgUserRepo:
@@ -44,23 +33,7 @@ class TgUserRepo:
         user = TgUser.objects.get(telegram_id=user_id)
 
         return user.main_message_id
-
-    @staticmethod
-    @sync_to_async
-    def get_promocampaigns() -> list[PromoCampaign]:
-        today = timezone.localdate()
-
-        return list(
-            PromoCampaign.objects.filter(
-                start_date__lte=today, end_date__gte=today
-            ).order_by("-start_date")
-        )
-
-    @staticmethod
-    @sync_to_async
-    def get_promo_by_pk(pk: int) -> PromoCampaign:
-        return PromoCampaign.objects.get(pk=pk)
-
+    
     @staticmethod
     @sync_to_async
     def get_user(telegram_id: int) -> TgUser | None:
@@ -70,15 +43,3 @@ class TgUserRepo:
     @sync_to_async
     def get_all_users() -> list[TgUser]:
         return list(TgUser.objects.all())
-
-
-class BroadCastMessageRepo:
-    @staticmethod
-    @sync_to_async
-    def get_ready_messages():
-        now = timezone.now()
-        qs = BroadcastMessage.objects.filter(
-            scheduled_at__lte=now,
-            send=False
-        )
-        return list(qs)

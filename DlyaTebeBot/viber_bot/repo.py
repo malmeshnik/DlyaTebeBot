@@ -1,6 +1,4 @@
-from django.utils import timezone
-
-from .models import ViberUser, PromoCampaign
+from .models import ViberUser
 
 
 class ViberUserRepo:
@@ -13,12 +11,3 @@ class ViberUserRepo:
         user = ViberUser.objects.get(viber_id=user_id)
 
         return user.phone_number
-
-
-class PromoCampaignRepo:
-    @staticmethod
-    def get_active_campaigns():
-        today = timezone.now().date()
-        return list(
-            PromoCampaign.objects.filter(start_date__lte=today, end_date__gte=today)
-        )

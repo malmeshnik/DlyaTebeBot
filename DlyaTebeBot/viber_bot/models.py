@@ -33,35 +33,3 @@ class ViberUser(models.Model):
     class Meta:
         verbose_name = "Користувач Viber"
         verbose_name_plural = "Користувачі Viber"
-
-class Message(models.Model):
-    name = models.CharField(max_length=255, verbose_name="Назва повідомлення")
-    text = models.TextField(verbose_name="Текст повідомлення", help_text=message_help_text)
-
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата створення")
-    updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата оновлення")
-
-    def __str__(self):
-        return self.name
-    
-    class Meta:
-        verbose_name = "Повідомлення"
-        verbose_name_plural = "Повідомлення"
-
-class PromoCampaign(models.Model):
-    name = models.CharField(verbose_name="Назва")
-    description = models.TextField(verbose_name="Опис")
-    image = models.ImageField(upload_to="promocampaign/", verbose_name="Фото")
-    start_date = models.DateField(verbose_name="Дата початку")
-    end_date = models.DateField(verbose_name="Дата завершення")
-
-    def __str__(self):
-        return self.name
-
-    @property
-    def image_url(self):
-        return settings.DOMAIN + self.image.url
-
-    class Meta:
-        verbose_name = "Акція"
-        verbose_name_plural = "Акції"

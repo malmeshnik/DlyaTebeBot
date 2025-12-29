@@ -16,7 +16,8 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
 from django.conf import settings
 
-from ..repo import MessageRepo, TgUserRepo
+from bots_settings.repo import MessageRepo, PromoCampaignRepo
+from ..repo import TgUserRepo
 from ..keyboards.user import get_contact_keyboard, main_menu_keyboard, promo as promo_kb
 from ..states import UserStates
 from ..utils import send_message, edit_message, edit_message_by_id, generate_qr_code
@@ -25,6 +26,7 @@ from ...api import ApiCRM
 
 router = Router()
 msg_repo = MessageRepo()
+promo_repo = PromoCampaignRepo()
 tg_user_repo = TgUserRepo()
 crm_client = ApiCRM(settings.PHONE_CRM_AUTH, settings.PASSWORD_CRM)
 
@@ -58,7 +60,7 @@ async def handle_contact(message: Message, bot: Bot, state: FSMContext) -> None:
     await message.delete()
     await bot.delete_message(message.chat.id, message.message_id - 1)
 
-    msg = await msg_repo.get_message_by_name("contact_received")
+    msg = await msg_repo.aget_message_by_name("contact_received")
 
     try:
         phone_number = message.contact.phone_number
@@ -141,6 +143,7 @@ async def bonus_card_message(query: CallbackQuery) -> None:
 
     phone = await tg_user_repo.get_user_phone(telegram_id=query.from_user.id)
     consumer = crm_client.get_consumer_info(phone)
+    bonus_value = consumer.bonus if consumer else 0
     photo = generate_qr_code(phone)
 
     await query.message.delete()
@@ -149,7 +152,7 @@ async def bonus_card_message(query: CallbackQuery) -> None:
         message_name="bonus_card",
         user_repo=tg_user_repo,
         photo=photo,
-        bonus=consumer.bonus,
+        bonus=bonus_value,
     )
 
 
@@ -189,7 +192,7 @@ async def promo(query: InlineQuery):
             ),
         ),
     ]
-    promocampaigns = await tg_user_repo.get_promocampaigns()
+    promocampaigns = await promo_repo.aget_active_campaigns()
     if not promocampaigns:
         results = [
             InlineQueryResultArticle(
@@ -233,7 +236,7 @@ async def view_promo(message: Message, bot: Bot) -> None:
 
     keyboard = promo_kb()
     pk = message.text.split(":")[1]
-    promocampaign = await tg_user_repo.get_promo_by_pk(pk)
+    promocampaign = await promo_repo.aget_promo(pk)
     message_text = f"<b>{promocampaign.name}</b>\n\n{promocampaign.description}"
 
     if promocampaign.image:

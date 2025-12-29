@@ -1,29 +1,28 @@
 from typing import List, Dict, Any
+from dataclasses import dataclass, field
 
-from .keyboards import Button
-from .models import PromoCampaign
-from bot.api import Purchase
-from .constants import BUTTON_COLORS, SOCIAL_MEDIA_URLS
 from django.conf import settings
 
+from bot.api import Purchase
+from bots_settings.models import PromoCampaign
+from .keyboards import Button
+from .constants import BUTTON_COLORS, SOCIAL_MEDIA_URLS
 
+
+@dataclass
 class PromoCardBuilder:
-    def __init__(self):
-        self.buttons: List[Button] = []
+    buttons: List[Button] = field(default_factory=list)
 
-    def add_image_button(self, promo: PromoCampaign) -> None:
-        self.buttons.append(
+    def add_promo_buttons(self, promo: PromoCampaign) -> 'PromoCardBuilder':
+        """Add all buttons for a promo in one call."""
+        self.buttons.extend([
             Button(
                 rows=3,
                 image=promo.image_url,
                 bg_color=BUTTON_COLORS["default"],
                 action_type="reply",
                 action_body="photo",
-            )
-        )
-
-    def add_title_button(self, promo: PromoCampaign) -> None:
-        self.buttons.append(
+            ),
             Button(
                 rows=1,
                 text=f"<b>{promo.name}</b>",
@@ -31,32 +30,25 @@ class PromoCardBuilder:
                 action_type="reply",
                 action_body="title",
                 border_color=BUTTON_COLORS["default"],
-            )
-        )
-
-    def add_description_button(self, promo: PromoCampaign) -> None:
-        self.buttons.append(
+            ),
             Button(
                 rows=2,
                 text=promo.description,
                 action_type="reply",
                 action_body="desc",
                 border_color=BUTTON_COLORS["default"],
-            )
-        )
-
-    def add_detail_button(self) -> None:
-        self.buttons.append(
+            ),
             Button(
                 rows=1,
                 text="Деталі",
                 action_type="reply",
-                action_body="click",
+                action_body=f"promo_{promo.id}",
                 border_color=BUTTON_COLORS["default"],
                 bg_color=BUTTON_COLORS["accent"],
                 text_h_align="center",
-            )
-        )
+            ),
+        ])
+        return self
 
     def build_rich_media(self) -> Dict[str, Any]:
         kb_buttons = [btn.to_dict() for btn in self.buttons]
@@ -67,6 +59,14 @@ class PromoCardBuilder:
             "BgColor": BUTTON_COLORS["default"],
             "Buttons": kb_buttons,
         }
+
+
+# Factory function for simplicity
+def create_promo_rich_media(promos: List[PromoCampaign]) -> Dict[str, Any]:
+    builder = PromoCardBuilder()
+    for promo in promos:
+        builder.add_promo_buttons(promo)
+    return builder.build_rich_media()
 
 
 class PurchaseCardBuilder:

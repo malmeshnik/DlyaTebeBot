@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     "easymde",
     "bot",
     "viber_bot",
+    "bots_settings",
 ]
 
 MIDDLEWARE = [

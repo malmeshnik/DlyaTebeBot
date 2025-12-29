@@ -2,17 +2,20 @@ from typing import Any, Optional
 import logging
 from datetime import datetime
 
+from django.conf import settings
 from viberbot.api.viber_requests import (
     ViberMessageRequest,
     ViberConversationStartedRequest,
 )
 from viberbot.api.messages import ContactMessage, TextMessage
 
-from .services import ViberService
-from .repo import ViberUserRepo, PromoCampaignRepo
-from .fsm import get_state
 from bot.api import ApiCRM
-from django.conf import settings
+from bots_settings.repo import PromoCampaignRepo, MessageRepo
+from .services import ViberService
+from .repo import ViberUserRepo
+from .fsm import get_state
+
+
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -22,18 +25,19 @@ logging.basicConfig(
 # Ініціалізація сервісу
 repo = ViberUserRepo()
 promo_repo = PromoCampaignRepo()
+msg_repo = MessageRepo()
 crm_client = ApiCRM(settings.PHONE_CRM_AUTH, settings.PASSWORD_CRM)
-service = ViberService(repo, promo_repo, crm_client)
+service = ViberService(repo, promo_repo, crm_client, msg_repo)
 
 handlers = []
 
 
 def viber_handler(
-    text: str = None, state: Any = None, request_type=ViberMessageRequest
+    text: str = None, state: Any = None, request_type=ViberMessageRequest, match: str = "exact"
 ):
     def decorator(func):
         handlers.append(
-            {"type": request_type, "text": text, "state": state, "func": func}
+            {"type": request_type, "text": text, "state": state, "func": func, "match": match}
         )
         return func
     return decorator
@@ -64,8 +68,13 @@ def handle_request(viber_request: Any, viber: Optional[Any] = None) -> None:
             message = viber_request.message
             text = getattr(message, "text", "").strip()
             action = getattr(message, "action_body", text)
-            if h["text"] and h["text"] != action:
-                continue
+            if h["text"]:
+                if h["match"] == "startswith":
+                    if not action.startswith(h["text"]):
+                        continue
+                else:  # exact
+                    if h["text"] != action:
+                        continue
             if h["state"] and h["state"] != get_state(user_id):
                 continue
         h["func"](viber_request, viber)
@@ -80,7 +89,7 @@ def hello(viber_request: Any, viber: Optional[Any] = None) -> None:
     set_state(user_id, "contact")
     messages = [
         TextMessage(
-            text="Введіть номер у форматі 380XXXXXXX, або ж натисніть кнопку нижче",
+            text=msg_repo.get_text("start"),
             keyboard=contact(),
             min_api_version=6,
         )
@@ -107,7 +116,7 @@ def handle_contact(viber_request: Any, viber: Optional[Any] = None) -> None:
         from .keyboards import contact
         messages = [
             TextMessage(
-                text="Введіть номер у форматі 380XXXXXXX, або ж натисніть кнопку нижче",
+                text=msg_repo.get_text("start"),
                 keyboard=contact(),
                 min_api_version=6,
             )

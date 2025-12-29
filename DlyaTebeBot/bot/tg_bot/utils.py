@@ -27,8 +27,9 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from django.conf import settings
 from django.utils import timezone
 
-from ..models import Message as DbMessage
-from .repo import TgUserRepo, MessageRepo, BroadCastMessageRepo
+from bots_settings.models import Message as DbMessage
+from bots_settings.repo import MessageRepo, BroadCastMessageRepo, PromoCampaignRepo
+from .repo import TgUserRepo
 
 
 async def get_keyboard_for_message(
@@ -160,7 +161,7 @@ async def send_message(
     )
 
     if not keyboard:
-        keyboard = get_keyboard_for_message(db_message)
+        keyboard = await get_keyboard_for_message(db_message)
 
     if photo or db_message.image:
         if not photo:
@@ -199,7 +200,7 @@ async def edit_message(
     message_text = db_message.text.format(bonus=bonus, name=message.chat.first_name)
 
     if not keyboard:
-        keyboard = get_keyboard_for_message(db_message)
+        keyboard = await get_keyboard_for_message(db_message)
 
     if db_message.image:
         mime_type, _ = mimetypes.guess_type(db_message.image.path)
@@ -237,7 +238,7 @@ async def edit_message_by_id(
     )
 
     if keyboard is None:
-        keyboard = get_keyboard_for_message(db_message)
+        keyboard = await get_keyboard_for_message(db_message)
 
     if db_message.image:
         mime, _ = mimetypes.guess_type(db_message.image.path)
@@ -299,9 +300,10 @@ async def check_and_send_promo():
     today = timezone.localdate()
     logger.info(f"Date now: {today}")
     tg_user_repo = TgUserRepo()
+    promo_repo = PromoCampaignRepo()
     msg_repo = MessageRepo()
 
-    promocampaigns = await tg_user_repo.get_promocampaigns()
+    promocampaigns = await promo_repo.aget_active_campaigns()
     logger.info(f"Find {len(promocampaigns)} active promo")
 
     for promo in promocampaigns:
@@ -332,7 +334,7 @@ async def check_and_send_promo():
 async def scheduler_messages():
     repo = BroadCastMessageRepo()
     tg_user_repo = TgUserRepo()
-    ready_messages = await repo.get_ready_messages()
+    ready_messages = await repo.aget_ready_messages()
     users = await tg_user_repo.get_all_users()
 
     async with Bot(token=settings.BOT_TOKEN) as bot:

@@ -1,6 +1,7 @@
 from typing import Optional, List
 from dataclasses import dataclass
 
+from .constants import SOCIAL_MEDIA_URLS
 
 @dataclass
 class Button:
@@ -114,7 +115,13 @@ def main_menu():
         create_menu_button("🎁 Акції", "promo"),
         create_menu_button("🛍️ Мої покупки", "my_purchaces"),
     ).row(
-        create_menu_button("📦 Каталог", "catalog"),
+        Button(
+            text="<b>📞 Зв'язатися з нами</b>",
+            action_type="open-url",
+            action_body=SOCIAL_MEDIA_URLS["catalog"],
+            text_size="large",
+            silent=True
+        ),
         create_menu_button("☎️ Зв'язатися з нами", "contact_us"),
         create_menu_button("📱 Instagram, TikTok", "social_media"),
     )
