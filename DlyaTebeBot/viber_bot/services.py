@@ -70,18 +70,30 @@ class ViberService:
         ]
 
     def handle_promo(self) -> List[RichMediaMessage]:
-        builder = PromoCardBuilder()
         promos = self.promo_repo.get_active_campaigns()
-        for promo in promos:
-            builder.add_promo_buttons(promo)
-        return [
-            RichMediaMessage(
-                rich_media=builder.build_rich_media(),
-                min_api_version=6,
-                keyboard=main_menu(),
-            )
-        ]
-    
+
+        if promos:
+            builder = PromoCardBuilder()
+
+            for promo in promos:
+                builder.add_promo_buttons(promo)
+            return [
+                RichMediaMessage(
+                    rich_media=builder.build_rich_media(),
+                    min_api_version=6,
+                    keyboard=main_menu(),
+                )
+            ]
+
+        else:
+            return [
+                TextMessage(
+                    text="Наразі немає активних акцій",
+                    keyboard=main_menu(),
+                    min_api_version=6,
+                )
+            ]
+
     def handle_promo_details(self, promo_id: int) -> List[PictureMessage]:
         promo = self.promo_repo.get_promo(promo_id)
         return [
@@ -89,7 +101,7 @@ class ViberService:
                 text=f"{promo.name}\n\n{promo.description}",
                 media=promo.image_url,
                 keyboard=main_menu(),
-                min_api_version=6
+                min_api_version=6,
             )
         ]
 
@@ -122,13 +134,13 @@ class ViberService:
             )
         ]
 
-    def handle_purchase_detail(self, user_id: str, purchase_id: int) -> list[RichMediaMessage]:
+    def handle_purchase_detail(
+        self, user_id: str, purchase_id: int
+    ) -> list[RichMediaMessage]:
         phone = self.repo.get_phone(user_id)
         consumer = self.crm_client.get_consumer_info(phone)
-        purchase = next(
-            (p for p in consumer.purchaces if p.id == purchase_id), None
-        )
-        
+        purchase = next((p for p in consumer.purchaces if p.id == purchase_id), None)
+
         if not purchase:
             return [
                 TextMessage(
@@ -137,12 +149,17 @@ class ViberService:
                     min_api_version=6,
                 )
             ]
-        
+
         builder = PurchaseCardBuilder()
         builder.add_row("<b>ТОВАР</b>", "<b>ГРН</b>", "header_product", "header_price")
         for product in purchase.products:
+            product_name = (
+                f"Парфюм {product.product}"
+                if product.product.isdigit()
+                else product.product
+            )
             builder.add_row(
-                f"{product.quantity} x {product.product}",
+                f"{product.quantity} x {product_name}",
                 f"{product.price}",
                 f"product_{product.product}",
                 f"price_{product.product}",
