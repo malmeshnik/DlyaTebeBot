@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    command: >
+      sh -c "python manage.py migrate &&
+             gunicorn --bind 0.0.0.0:8000 DlyaTebeBot.wsgi:application"
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - web
+    restart: unless-stopped
+
+  schedulers:
+    build: .
+    command: python manage.py scheduler
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  bot:
+    build: .
+    command: python manage.py startbot
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  viber_bot:
+    build: .
+    command: python manage.py set_viber_webhook
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - db
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:

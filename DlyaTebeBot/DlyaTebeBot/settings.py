@@ -49,6 +49,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "easymde",
     "bot",
+    "viber_bot",
+    "bots_settings",
 ]
 
 MIDDLEWARE = [
@@ -140,6 +142,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -149,3 +152,8 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 DOMAIN = os.getenv("DOMAIN")
+
+# Viber
+VIBER_BOT_TOKEN = os.getenv("VIBER_BOT_TOKEN")
+VIBER_WEBHOOK_BASE_URL = os.getenv("VIBER_WEBHOOK_BASE_URL")
+VIBER_WEBHOOK_PATH = os.getenv("VIBER_WEBHOOK_PATH")
