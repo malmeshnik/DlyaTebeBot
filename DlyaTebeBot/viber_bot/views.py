@@ -66,7 +66,7 @@ def main_menu():
 logger = logging.getLogger(__name__)
 
 
-@csrf_exempt  # ОБОВʼЯЗКОВО, бо Viber не шле CSRF токен
+@csrf_exempt
 def viber_webhook(request):
     if request.method != "POST":
         return HttpResponse(status=405)

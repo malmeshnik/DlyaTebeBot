@@ -294,4 +294,4 @@ async def inline_my_purchaces(query: InlineQuery):
                     )
                 )
 
-    await query.answer(results=results, cache_time=1, is_personal=True)
+    await query.answer(results=results[:20], cache_time=1, is_personal=True)
