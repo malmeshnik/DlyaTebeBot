@@ -60,7 +60,7 @@ class ViberService:
         consumer = self.crm_client.get_consumer_info(phone)
         return [
             PictureMessage(
-                text=self.msg_repo.get_text("bonus_card").format(
+                text=self.msg_repo.get_viber_text("bonus_card").format(
                     name=consumer.first_name, bonus=consumer.bonus
                 ),
                 media=settings.VIBER_WEBHOOK_BASE_URL + qr_url,

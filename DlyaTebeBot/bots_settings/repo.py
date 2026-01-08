@@ -42,6 +42,12 @@ class MessageRepo:
     
     async def aget_text(self, name: str) -> str | None:
         return await sync_to_async(self.get_text)(name)
+    
+    def get_viber_text(self, name: str) -> str | None:
+        message = self.get_message_by_name(name)
+        if message:
+            return message.strip_html()
+        return None
 
 
 class BroadCastMessageRepo:

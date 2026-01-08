@@ -1,3 +1,5 @@
+import re
+
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
@@ -37,6 +39,16 @@ class Message(models.Model):
 
     def __str__(self):
         return self.name
+
+    def strip_html(self) -> str:
+        if not self.text:
+            return self.text
+
+        text = re.sub(r"<br\s*/?>", "\n", self.text, flags=re.IGNORECASE)
+
+        text = re.sub(r"<.*?>", "", text)
+
+        return text
 
     class Meta:
         verbose_name = "Повідомлення"
