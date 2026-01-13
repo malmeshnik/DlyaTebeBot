@@ -1,3 +1,4 @@
+from uuid import uuid4
 from loguru import logger
 from random import randint
 
@@ -281,10 +282,12 @@ async def inline_my_purchaces(query: InlineQuery):
 
     for purchace in cunsomer.purchaces[:5]:
         for product in purchace.products:
-            if not product.product.isdigit():
+            if product.product:
+                product_name = product.product if not product.product.isdigit() else f"Парфюм {product.product}"
+
                 results.append(
                     InlineQueryResultArticle(
-                        id=f"purchace-{product.product}",
+                        id=str(uuid4()),
                         title=product.product,
                         description=f"Кількість: {product.quantity} Вартість: {product.price}",
                         thumbnail_url="https://upload.wikimedia.org/wikipedia/commons/5/59/Empty.png",

@@ -207,8 +207,12 @@ async def edit_message(
         if mime_type and mime_type.startswith("image/"):
             photo = FSInputFile(db_message.image.path)
             media = InputMediaPhoto(media=photo, caption=message_text)
-            msg = await message.edit_media(media=media, reply_markup=keyboard)
-            msg = await message.edit_text(text=message_text, reply_markup=keyboard)
+            try:
+                msg = await message.edit_media(media=media, reply_markup=keyboard)
+                msg = await message.edit_text(text=message_text, reply_markup=keyboard)
+            except:
+                await message.delete()
+                msg = await message.answer_photo(photo=photo, caption=message_text, reply_markup=keyboard)
     else:
         try:
             msg = await message.edit_text(text=message_text, reply_markup=keyboard)
