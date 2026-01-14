@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "bot",
     "viber_bot",
     "bots_settings",
+    "miniapp",
 ]
 
 MIDDLEWARE = [
