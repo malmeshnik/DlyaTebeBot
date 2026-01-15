@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from "react-redux";
 import {
   setParams,
   fetchBrandsByCategory,
-  fetchModelsByBrand,
 } from "../store/productsSlice";
 
 const FilterSortBar = ({ onApply }) => {
@@ -25,19 +24,11 @@ const FilterSortBar = ({ onApply }) => {
     return [];
   }, [productsState?.brandsByCategory]);
 
-  const modelsByBrand = useMemo(() => {
-    const data = productsState?.modelsByBrand;
-    if (Array.isArray(data)) return data;
-    if (Array.isArray(data?.results)) return data.results;
-    return [];
-  }, [productsState?.modelsByBrand]);
-
   const [open, setOpen] = useState(false);
 
   // FILTER STATE
   const [category, setCategory] = useState("");
   const [brand, setBrand] = useState("");
-  const [model, setModel] = useState("");
   const [ordering, setOrdering] = useState("");
   const [priceMin, setPriceMin] = useState("");
   const [priceMax, setPriceMax] = useState("");
@@ -56,27 +47,9 @@ const FilterSortBar = ({ onApply }) => {
       setParams({
         category,
         brand: null,
-        model: null,
       })
     );
   }, [category, dispatch]);
-
-  /* =======================
-     BRAND → MODELS
-  ======================= */
-  useEffect(() => {
-    if (!brand) return;
-
-    dispatch(fetchModelsByBrand(brand));
-    setModel("");
-
-    dispatch(
-      setParams({
-        brand,
-        model: null,
-      })
-    );
-  }, [brand, dispatch]);
 
   /* =======================
      APPLY
@@ -84,7 +57,6 @@ const FilterSortBar = ({ onApply }) => {
   const apply = () => {
     dispatch(
       setParams({
-        model: model || null,
         ordering: ordering || null,
         price_min: priceMin || null,
         price_max: priceMax || null,
@@ -110,7 +82,6 @@ const FilterSortBar = ({ onApply }) => {
       setParams({
         category: null,
         brand: null,
-        model: null,
         ordering: null,
         price_min: null,
         price_max: null,
@@ -184,25 +155,6 @@ const FilterSortBar = ({ onApply }) => {
                   {brandsByCategory.map((b) => (
                     <option key={b.slug} value={b.slug}>
                       {b.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {/* MODEL */}
-            {modelsByBrand.length > 0 && (
-              <div className="mb-4">
-                <label className="block font-semibold mb-1">Модель</label>
-                <select
-                  value={model}
-                  onChange={(e) => setModel(e.target.value)}
-                  className="w-full p-2 border rounded-lg"
-                >
-                  <option value="">Все модели</option>
-                  {modelsByBrand.map((m) => (
-                    <option key={m.slug} value={m.slug}>
-                      {m.name}
                     </option>
                   ))}
                 </select>

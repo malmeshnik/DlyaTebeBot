@@ -103,7 +103,7 @@ export const fetchProducts = createAsyncThunk(
 export const fetchCategories = createAsyncThunk(
   "products/fetchCategories",
   async () => {
-    const response = await api.get("/categories/");
+    const response = await api.get("/genders/");
     return response.data;
   }
 );
@@ -123,18 +123,6 @@ export const fetchBrandsByCategory = createAsyncThunk(
   async (slug) => {
     const response = await api.get("/brands/", {
       params: { category: slug },
-    });
-
-    return response.data.results ?? response.data;
-  }
-);
-
-// ---------- 🔥 MODELS BY BRAND ----------
-export const fetchModelsByBrand = createAsyncThunk(
-  "products/fetchModelsByBrand",
-  async (brandSlug) => {
-    const response = await api.get("/models/", {
-      params: { brand: brandSlug },
     });
 
     return response.data.results ?? response.data;
@@ -162,7 +150,7 @@ export const fetchProductsByCategory = createAsyncThunk(
 
     const response = await api.get(requestUrl, {
       params: {
-        category: slug,
+        gender: slug,
         ...cleanParams(params),
       },
     });
@@ -265,11 +253,6 @@ const productsSlice = createSlice({
       // BRANDS BY CATEGORY
       .addCase(fetchBrandsByCategory.fulfilled, (state, action) => {
         state.brandsByCategory = action.payload;
-      })
-
-      // 🔥 MODELS BY BRAND
-      .addCase(fetchModelsByBrand.fulfilled, (state, action) => {
-        state.modelsByBrand = action.payload;
       })
 
       // PRODUCT DETAIL

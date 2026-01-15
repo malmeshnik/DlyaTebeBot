@@ -1,9 +1,9 @@
 import { Link } from "react-router-dom";
 
-const CategoryItem = ({ category }) => {
+const CategoryItem = ({ category, link = "gender" }) => {
     return (
         <Link
-            to={`/category/${category.slug}`}
+            to={`/${link}/${category.slug}`}
             key={category.id}
             className="flex flex-col items-center"
             >

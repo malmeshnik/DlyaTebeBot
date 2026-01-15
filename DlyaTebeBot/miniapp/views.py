@@ -3,24 +3,23 @@ from rest_framework.permissions import AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Case, When, Value, IntegerField
 from rest_framework.filters import SearchFilter, OrderingFilter
-from .models import Category, Product, Brand, Model, Banner
+from .models import Gender, Product, Brand, Banner
 from .serializers import (
-    CategorySerializer,
+    GenderSerializer,
     ProductSerializer,
     BrandSerializer,
-    ModelSerializer,
     BannerSerializer
 )
 from .filters import ProductFilter
 
 
-class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
+class GenderViewSet(viewsets.ReadOnlyModelViewSet):
     """
     A simple ViewSet for viewing categories.
     """
 
-    queryset = Category.objects.all().order_by("id")
-    serializer_class = CategorySerializer
+    queryset = Gender.objects.all().order_by("id")
+    serializer_class = GenderSerializer
     lookup_field = "slug"
 
 
@@ -64,8 +63,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
                 "sort_order",
                 "id",
             )
-            .select_related("brand", "model")
-            .prefetch_related("categories")
+            .select_related("brand", "gender")
         )
 
 
@@ -82,24 +80,6 @@ class BrandViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(category__slug=category)
 
         return queryset
-
-
-class ModelViewSet(viewsets.ReadOnlyModelViewSet):
-    serializer_class = ModelSerializer
-
-    def get_queryset(self):
-        qs = Model.objects.all()
-
-        brand = self.request.query_params.get("brand")
-        category = self.request.query_params.get("category")
-
-        if brand:
-            qs = qs.filter(brand__slug=brand)
-
-        if category:
-            qs = qs.filter(category__slug=category)
-
-        return qs
 
 class BannerViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [AllowAny]

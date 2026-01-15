@@ -2,13 +2,13 @@ from django.db import models
 from django.utils.text import slugify
 
 
-class Category(models.Model):
-    name = models.CharField(max_length=255, verbose_name="Назване")
+class Gender(models.Model):
+    name = models.CharField(max_length=255, verbose_name="Назва")
     slug = models.SlugField(unique=True, blank=True)
     image = models.ImageField(
-        upload_to="categories/", blank=True, null=True, verbose_name="Фото"
+        upload_to="gender/", blank=True, null=True, verbose_name="Фото"
     )
-    description = models.TextField(blank=True, verbose_name="Описание")
+    description = models.TextField(blank=True, verbose_name="Опис")
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -19,18 +19,18 @@ class Category(models.Model):
         return self.name
 
     class Meta:
-        verbose_name = "Категория"
-        verbose_name_plural = "Категории"
+        verbose_name = "Для кого"
+        verbose_name_plural = "Для кого"
 
 
 class Brand(models.Model):
-    name = models.CharField(max_length=255, verbose_name="Назване")
+    name = models.CharField(max_length=255, verbose_name="Назва")
     slug = models.SlugField(unique=True, blank=True)
-    category = models.ForeignKey(
-        Category,
+    gender = models.ForeignKey(
+        Gender,
         related_name="brands",
         on_delete=models.CASCADE,
-        verbose_name="Категория",
+        verbose_name="Для кого",
     )
 
     image = models.ImageField(
@@ -42,37 +42,20 @@ class Brand(models.Model):
 
     class Meta:
         verbose_name = "Бренд"
-        verbose_name_plural = "Бренды"
-
-class Model(models.Model):
-    name = models.CharField(max_length=255, verbose_name="Модель")
-    slug = models.SlugField(unique=True)
-    brand = models.ForeignKey(
-        Brand,
-        related_name="models",
-        on_delete=models.CASCADE,
-        verbose_name="Бренд"
-    )
-
-    def __str__(self):
-        return self.name
-    
-    class Meta:
-        verbose_name = "Модель продукта"
-        verbose_name_plural = "Модели продуктов"
-        ordering = ["name"]
+        verbose_name_plural = "Бренди"
 
 
 class Product(models.Model):
 
-    categories = models.ManyToManyField(
-        Category,
+    gender = models.ForeignKey(
+        Gender,
         related_name="products",
-        verbose_name="Категории",
+        verbose_name="Для кого",
+        on_delete=models.SET_NULL,
         null=True,
         blank=True
     )
-    name = models.CharField(max_length=255, verbose_name="Назване")
+    name = models.CharField(max_length=255, verbose_name="Назва")
     slug = models.SlugField(unique=True, blank=True)
     image = models.ImageField(upload_to="products/", verbose_name="Фото")
     brand = models.ForeignKey(
@@ -83,15 +66,6 @@ class Product(models.Model):
         blank=True,
         verbose_name="Бренд",
     )
-
-    model = models.ForeignKey(
-        Model,
-        related_name="products",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        verbose_name="Модель"
-    )
     
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Цена")
     old_price = models.DecimalField(
@@ -99,19 +73,18 @@ class Product(models.Model):
         decimal_places=2,
         blank=True,
         null=True,
-        verbose_name="Цена до скидки",
+        verbose_name="Ціна до скидки",
     )
-    characteristics = models.TextField(verbose_name="Характеристики")
-    is_available = models.BooleanField(default=True, verbose_name="Доступен")
+    characteristics = models.TextField(verbose_name="Опис")
+    is_available = models.BooleanField(default=True, verbose_name="В наявності")
     available = models.IntegerField(default=999, verbose_name="Доступно")
     sort_order = models.IntegerField(
         default=0,
-        verbose_name="Порядок отображения"
+        verbose_name="Порядок відображення"
     )
     created_at = models.DateTimeField(
-        auto_now_add=True, null=True, verbose_name="Создано"
+        auto_now_add=True, null=True, verbose_name="Створено"
     )
-    popularity = models.IntegerField(default=0, verbose_name="Популярность")
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -123,7 +96,7 @@ class Product(models.Model):
 
     class Meta:
         verbose_name = "Продукт"
-        verbose_name_plural = "Продукты"
+        verbose_name_plural = "Продукти"
 
 
 class ProductImage(models.Model):
@@ -144,11 +117,11 @@ class ProductImage(models.Model):
 
 class Banner(models.Model):
     image = models.ImageField(upload_to="products/banners/", verbose_name="Фото")
-    link = models.URLField(blank=True, null=True, verbose_name="Ссылка")
+    link = models.URLField(blank=True, null=True, verbose_name="Посилання")
 
     def __str__(self):
         return self.image.path
     
     class Meta:
         verbose_name = "Банер"
-        verbose_name_plural = "Банеры"
+        verbose_name_plural = "Банери"

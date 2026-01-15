@@ -13,8 +13,6 @@ const BannerSlider = () => {
     ? banners
     : banners?.results || [];
 
-  if (!bannerList.length) return null;
-
   useEffect(() => {
     const fetchBanners = async () => {
       try {

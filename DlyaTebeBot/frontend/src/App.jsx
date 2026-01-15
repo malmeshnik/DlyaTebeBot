@@ -1,24 +1,33 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import HomePage from "./pages/HomePage";
-import CategoryPage from "./pages/CategoryPage";
+import GenderPage from "./pages/GenderPage"
 import BrandPage from "./pages/BrandPage";
+import ProductPage from "./pages/ProductPage";
+import Layout from "./components/Layout";
 
 const App = () => {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        <Route element={<Layout />}>
+          <Route path="/" element={<HomePage />} />
 
-        <Route
-          path="/category/:slug"
-          element={<CategoryPage />}
-        />
+          <Route
+            path="/gender/:slug"
+            element={<GenderPage />}
+          />
 
-        <Route
-          path="/brand/:slug"
-          element={<BrandPage />}
-        />
+          <Route
+            path="/brand/:slug"
+            element={<BrandPage />}
+          />
+
+          <Route 
+            path="/product/:slug"
+            element={<ProductPage />}
+          />
+        </Route>
 
       </Routes>
     </BrowserRouter>

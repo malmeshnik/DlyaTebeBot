@@ -17,11 +17,6 @@ class ProductFilter(filters.FilterSet):
         lookup_expr="in"
     )
 
-    model = CharInFilter(
-        field_name="model__slug",
-        lookup_expr="in"
-    )
-
     price_min = filters.NumberFilter(
         field_name="price",
         lookup_expr="gte"

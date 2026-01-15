@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Category, Product, ProductImage, Banner, Brand, Model
+from .models import Gender, Product, ProductImage, Banner, Brand
 
 
 class BannerSerializer(serializers.ModelSerializer):
@@ -19,28 +19,21 @@ class BrandSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "slug", "image"]
 
 
-class CategorySerializer(serializers.ModelSerializer):
+class GenderSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Category
+        model = Gender
         fields = ("id", "name", "slug", "image", "description")
 
 
 class BrandSerializer(serializers.ModelSerializer):
     class Meta:
         model = Brand
-        fields = ("id", "name", "slug", "category", "image")
-
-
-class ModelSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Model
-        fields = ("id", "name", "slug")
+        fields = ("id", "name", "slug", "gender", "image")
 
 
 class ProductSerializer(serializers.ModelSerializer):
-    categories = CategorySerializer(many=True, read_only=True)
+    gender = GenderSerializer(read_only=True)
     brand = BrandSerializer(read_only=True)
-    model = ModelSerializer(read_only=True)
     gallery = ProductImageSerializer(many=True, read_only=True)
 
     class Meta:
@@ -50,9 +43,8 @@ class ProductSerializer(serializers.ModelSerializer):
             "name",
             "slug",
             "image",
-            "categories",
+            "gender",
             "brand",
-            "model",
             "price",
             "old_price",
             "characteristics",
@@ -61,6 +53,3 @@ class ProductSerializer(serializers.ModelSerializer):
             "sort_order",
             "gallery",
         )
-
-    def get_category(self, obj):
-        return obj.category.name if obj.category else None

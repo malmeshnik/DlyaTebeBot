@@ -1,8 +1,8 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useParams } from 'react-router-dom';
-import { fetchProduct } from '../store/features/productsSlice';
-import { addToCart } from '../store/features/cartSlice';
+import { fetchProduct } from '../store/productsSlice';
+
 import ProductGallery from '../components/ProductGallery';
 
 const ProductPage = () => {
@@ -22,13 +22,8 @@ const ProductPage = () => {
     return <p className="text-center text-gray-500 mt-6">Завантаження...</p>;
   }
 
-  console.log(product)
   // Формуємо галерею
   const galleryImages = [{ image: product.image }];
-
-  const handleAddToCart = () => {
-    dispatch(addToCart(product));
-  };
 
   return (
     <div className="mt-6">
@@ -80,19 +75,6 @@ const ProductPage = () => {
               </div>
             )}
           </div>
-
-          {/* КНОПКА */}
-          <button
-            onClick={handleAddToCart}
-            className="
-              mt-8 w-full px-6 py-3 rounded-lg font-semibold text-white
-              bg-gradient-to-r from-green-500 to-blue-500 shadow-md
-              hover:scale-[1.02] transition-transform
-              hover:from-green-600 hover:to-blue-600
-            "
-          >
-            Добавить в корзину
-          </button>
 
         </div>
       </div>
