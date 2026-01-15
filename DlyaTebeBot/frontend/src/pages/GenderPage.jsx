@@ -18,14 +18,15 @@ const GenderPage = () => {
     categoryProducts = [],
     categoryNext = null,
     status = "idle",
+    params,
   } = productsState || {};
 
 
   useEffect(() => {
-    dispatch(fetchBrandsByCategory({ slug }));
+    dispatch(fetchBrandsByCategory( slug ));
     dispatch(resetHomeProducts());
     dispatch(fetchProductsByCategory({ slug }));
-  }, [dispatch, slug]);
+  }, [params, dispatch, slug]);
 
   const applyFilters = () => {
       dispatch(resetHomeProducts());
@@ -54,7 +55,7 @@ const GenderPage = () => {
         status={status}
         onApplyFilters={applyFilters}
         onLoadMore={() =>
-          dispatch(fetchProductsByCategory({ slug, url: next }))
+          dispatch(fetchProductsByCategory({ slug, url: categoryNext }))
         }
       />
     </div>

@@ -4,17 +4,31 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
-import { useSelector, useDispatch } from "react-redux";
-import { setSearchTerm } from "../store/searchSlice";
+import { useDispatch } from "react-redux";
+import { useState, useEffect } from "react";
 
 import {
   HomeIcon,
   MagnifyingGlassIcon,
   ArrowLeftIcon,
 } from "@heroicons/react/24/outline";
+import { setParams } from "../store/productsSlice";
 
 const Layout = () => {
   const dispatch = useDispatch();
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      dispatch(
+        setParams({
+          search: search || null,
+        })
+      );
+    }, 300);
+
+    return () => clearTimeout(t);
+  }, [search, dispatch]);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -56,12 +70,14 @@ const Layout = () => {
               <MagnifyingGlassIcon className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Поиск..."
+                placeholder="Пошук..."
                 className="w-full bg-gray-100 text-black
                   pl-10 pr-4 py-2 rounded-xl
                   focus:outline-none focus:ring-2 focus:ring-gray-300"
                 onChange={(e) =>
-                  dispatch(setSearchTerm(e.target.value))
+                  dispatch(setParams({
+                    search: e.target.value || null
+                  }))
                 }
               />
             </div>

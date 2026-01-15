@@ -33,7 +33,7 @@ const ProductsListLayout = ({
       <FilterSortBar onApply={onApplyFilters} />
 
       {status === "loading" && products.length === 0 && (
-        <p className="text-center">Загрузка...</p>
+        <p className="text-center">Завантаження...</p>
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
@@ -44,7 +44,7 @@ const ProductsListLayout = ({
 
       {status === "loading" && products.length > 0 && (
         <p className="text-center mt-6">
-          Загружаем еще...
+          Завантажуємо ще...
         </p>
       )}
     </>

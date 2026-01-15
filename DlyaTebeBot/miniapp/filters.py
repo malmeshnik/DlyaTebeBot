@@ -7,9 +7,9 @@ class CharInFilter(filters.BaseInFilter, filters.CharFilter):
 
 
 class ProductFilter(filters.FilterSet):
-    category = filters.CharFilter(
-        field_name="categories__slug",
-        lookup_expr="exact"
+    gender = CharInFilter(
+        field_name="gender__slug",
+        lookup_expr="in"
     )
 
     brand = CharInFilter(
@@ -34,7 +34,7 @@ class ProductFilter(filters.FilterSet):
     class Meta:
         model = Product
         fields = [
-            "category",
+            "gender",
             "brand",
             "price_min",
             "price_max",

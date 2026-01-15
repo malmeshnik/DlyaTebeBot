@@ -40,6 +40,11 @@ const ProductPage = () => {
 
           {/* Назва */}
           <div>
+            {product.brand?.name && (
+              <p className="text-xl uppercase tracking-wide text-gray-500 mb-1">
+                {product.brand.name}
+              </p>
+            )}
             <h1 className="text-3xl font-bold text-gray-900">
               {product.name}
             </h1>
@@ -48,27 +53,20 @@ const ProductPage = () => {
             <div className="mt-4 flex items-center gap-3">
               {product.old_price && (
                 <span className="text-gray-400 line-through text-xl">
-                  {product.old_price} zł
+                  {product.old_price} грн.
                 </span>
               )}
 
               <span className="text-3xl text-red-600 font-bold">
-                {product.price} zł
+                {product.price} грн.
               </span>
             </div>
-
-            {/* Доступність */}
-            {product.available !== undefined && (
-              <p className="mt-2 text-gray-600 text-lg">
-                <span className="font-semibold">Доступно:</span> {product.available} шт
-              </p>
-            )}
 
 
             {/* Характеристики */}
             {product.characteristics && (
               <div className="mt-6">
-                <h2 className="text-xl font-semibold mb-3">Характеристики</h2>
+                <h2 className="text-xl font-semibold mb-3">Опис</h2>
                 <p className="text-gray-700 leading-relaxed whitespace-pre-line">
                   {product.characteristics}
                 </p>

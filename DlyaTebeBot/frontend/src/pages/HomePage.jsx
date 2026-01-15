@@ -19,6 +19,7 @@ const HomePage = () => {
     products,
     next,
     status,
+    params,
   } = useSelector((state) => state.products);
 
   // =======================
@@ -26,9 +27,15 @@ const HomePage = () => {
   // =======================
   useEffect(() => {
     dispatch(fetchCategories());
+  }, [dispatch]);
+
+  // =======================
+  // FETCH PRODUCTS ON PARAM CHANGE
+  // =======================
+  useEffect(() => {
     dispatch(resetHomeProducts());
     dispatch(fetchProducts({}));
-  }, [dispatch]);
+  }, [params, dispatch]);
 
   // =======================
   // APPLY FILTERS / SORT

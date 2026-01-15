@@ -27,7 +27,7 @@ const FilterSortBar = ({ onApply }) => {
   const [open, setOpen] = useState(false);
 
   // FILTER STATE
-  const [category, setCategory] = useState("");
+  const [gender, setGender] = useState("");
   const [brand, setBrand] = useState("");
   const [ordering, setOrdering] = useState("");
   const [priceMin, setPriceMin] = useState("");
@@ -37,19 +37,18 @@ const FilterSortBar = ({ onApply }) => {
      CATEGORY → BRANDS
   ======================= */
   useEffect(() => {
-    if (!category) return;
+    if (!gender) return;
 
-    dispatch(fetchBrandsByCategory(category));
+    dispatch(fetchBrandsByCategory(gender));
     setBrand("");
-    setModel("");
 
     dispatch(
       setParams({
-        category,
+        gender,
         brand: null,
       })
     );
-  }, [category, dispatch]);
+  }, [gender, dispatch]);
 
   /* =======================
      APPLY
@@ -71,16 +70,15 @@ const FilterSortBar = ({ onApply }) => {
      RESET
   ======================= */
   const reset = () => {
-    setCategory("");
+    setGender("");
     setBrand("");
-    setModel("");
     setOrdering("");
     setPriceMin("");
     setPriceMax("");
 
     dispatch(
       setParams({
-        category: null,
+        gender: null,
         brand: null,
         ordering: null,
         price_min: null,
@@ -100,7 +98,7 @@ const FilterSortBar = ({ onApply }) => {
           onClick={() => setOpen(true)}
           className="px-4 py-2 rounded-lg border text-sm font-semibold"
         >
-          ⚙️ Фильтры
+          ⚙️ Фільтри
         </button>
 
         <select
@@ -113,9 +111,9 @@ const FilterSortBar = ({ onApply }) => {
           }}
           className="px-3 py-2 border rounded-lg text-sm"
         >
-          <option value="">По умолчанию</option>
-          <option value="price">От дешевых к дорогим</option>
-          <option value="-price">От дорогих к дешевым</option>
+          <option value="">За замовчуванням</option>
+          <option value="price">Від дешевих до дорогих</option>
+          <option value="-price">Від дорогих до дешевих</option>
         </select>
       </div>
 
@@ -123,17 +121,17 @@ const FilterSortBar = ({ onApply }) => {
       {open && (
         <div className="fixed inset-0 z-40 bg-black/40">
           <div className="absolute bottom-0 w-full bg-white rounded-t-2xl p-5 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-bold mb-4">Фильтры</h3>
+            <h3 className="text-xl font-bold mb-4">Фільтри</h3>
 
             {/* CATEGORY */}
             <div className="mb-4">
-              <label className="block font-semibold mb-1">Категория</label>
+              <label className="block font-semibold mb-1">Для кого</label>
               <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                value={gender}
+                onChange={(e) => setGender(e.target.value)}
                 className="w-full p-2 border rounded-lg"
               >
-                <option value="">Все категории</option>
+                <option value="">Всі види</option>
                 {categories.map((c) => (
                   <option key={c.slug} value={c.slug}>
                     {c.name}
@@ -151,7 +149,7 @@ const FilterSortBar = ({ onApply }) => {
                   onChange={(e) => setBrand(e.target.value)}
                   className="w-full p-2 border rounded-lg"
                 >
-                  <option value="">Все бренды</option>
+                  <option value="">Всі бренди</option>
                   {brandsByCategory.map((b) => (
                     <option key={b.slug} value={b.slug}>
                       {b.name}
@@ -163,11 +161,11 @@ const FilterSortBar = ({ onApply }) => {
 
             {/* PRICE */}
             <div className="mb-4">
-              <label className="block font-semibold mb-1">Цена</label>
+              <label className="block font-semibold mb-1">Ціна</label>
               <div className="flex gap-3">
                 <input
                   type="number"
-                  placeholder="От"
+                  placeholder="Від"
                   value={priceMin}
                   onChange={(e) => setPriceMin(e.target.value)}
                   className="flex-1 p-2 border rounded-lg"
@@ -188,14 +186,14 @@ const FilterSortBar = ({ onApply }) => {
                 onClick={apply}
                 className="flex-1 py-3 rounded-lg bg-black text-white font-semibold"
               >
-                Применить
+                Застосувати
               </button>
 
               <button
                 onClick={reset}
                 className="flex-1 py-3 rounded-lg bg-gray-100 font-semibold"
               >
-                Сбросить
+                Скинути
               </button>
             </div>
           </div>

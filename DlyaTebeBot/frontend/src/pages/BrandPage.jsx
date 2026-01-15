@@ -17,12 +17,13 @@ const BrandPage = () => {
     brandProducts = [],
     brandNext = null,
     status = "idle",
+    params,
   } = productState || {}
 
   useEffect(() => {
     dispatch(resetHomeProducts());
     dispatch(fetchProductsByBrand({slug}));
-  }, [dispatch, slug]);
+  }, [params, dispatch, slug]);
 
   const applyFilters = () => {
     dispatch(resetHomeProducts());
@@ -37,7 +38,7 @@ const BrandPage = () => {
         status={status}
         onApplyFilters={applyFilters}
         onLoadMore={() =>
-          dispatch(fetchProductsByCategory({ slug, url: next }))
+          dispatch(fetchProductsByBrand({ slug, url: brandNext }))
         }
       />
     </div>

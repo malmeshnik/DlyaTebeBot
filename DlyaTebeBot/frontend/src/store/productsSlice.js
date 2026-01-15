@@ -13,8 +13,8 @@ const normalizeNextUrl = (url) => {
     const parsed = new URL(url, window.location.origin);
     let path = parsed.pathname + parsed.search;
 
-    if (path.startsWith("/api/")) {
-      path = path.replace("/api", "");
+    if (path.startsWith("/api/miniapp/")) {
+      path = path.replace("/api/miniapp", "");
     }
 
     return path;
@@ -50,9 +50,6 @@ const initialState = {
   brandProducts: [],
   brandNext: null,
 
-  // 🔥 MODELS
-  modelsByBrand: [],
-
   // META
   categories: [],
   brands: [],
@@ -64,7 +61,6 @@ const initialState = {
     price_max: null,
     ordering: null,
     search: null,
-    model: null, // 🔥 NEW
   },
 
   status: "idle",
@@ -122,7 +118,9 @@ export const fetchBrandsByCategory = createAsyncThunk(
   "products/fetchBrandsByCategory",
   async (slug) => {
     const response = await api.get("/brands/", {
-      params: { category: slug },
+      params: {
+        gender: slug,
+      },
     });
 
     return response.data.results ?? response.data;

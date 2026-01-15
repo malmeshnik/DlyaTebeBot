@@ -74,10 +74,10 @@ class BrandViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         queryset = Brand.objects.all().order_by("id")
 
-        category = self.request.query_params.get("category")
+        gender = self.request.query_params.get("gender")
 
-        if category:
-            queryset = queryset.filter(category__slug=category)
+        if gender:
+            queryset = queryset.filter(gender__slug=gender)
 
         return queryset
 
