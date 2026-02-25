@@ -1,9 +1,13 @@
-from rest_framework import viewsets
+from asgiref.sync import async_to_sync
+
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Case, When, Value, IntegerField, Prefetch
 from rest_framework.filters import SearchFilter, OrderingFilter
-from .models import Gender, Product, Brand, Banner, ProductVariant
+from .models import Gender, Product, Brand, Banner, ProductVariant, Order
 from .serializers import (
     GenderSerializer,
     ProductSerializer,
@@ -11,7 +15,7 @@ from .serializers import (
     BannerSerializer
 )
 from .filters import ProductFilter
-
+from bot.tg_bot.utils import send_alerts_for_admin
 
 class GenderViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -91,3 +95,38 @@ class BannerViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [AllowAny]
     serializer_class = BannerSerializer
     queryset = Banner.objects.all()
+
+class OrderViewSet(viewsets.GenericViewSet):
+    permission_classes = [AllowAny]
+
+    @action(detail=False, methods=["post"])
+    def create_order(self, request):
+        product_id = request.data.get("product_id")
+        variant_id = request.data.get("variant_id")
+
+        try:
+            product = Product.objects.get(id=product_id)
+        except Product.DoesNotExist:
+            return Response({"error": "Product not found"}, status=404)
+
+        variant = None
+        price = product.price
+
+        if variant_id:
+            try:
+                variant = ProductVariant.objects.get(id=variant_id)
+                price = variant.price
+            except ProductVariant.DoesNotExist:
+                pass
+
+        order = Order.objects.create(
+            product=product,
+            variant=variant,
+            price=price
+        )
+
+        product_name = product.name
+
+        async_to_sync(send_alerts_for_admin)(order, product_name, variant.volume_ml)
+
+        return Response({"order_id": order.id}, status=status.HTTP_201_CREATED)

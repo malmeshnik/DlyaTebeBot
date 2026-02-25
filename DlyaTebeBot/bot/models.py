@@ -20,6 +20,8 @@ class TgUser(models.Model):
         verbose_name="ID повідомлення з головним меню", null=True, blank=True
     )
 
+    is_admin = models.BooleanField(default=False, verbose_name="Адмін")
+
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата створення")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата оновлення")
 

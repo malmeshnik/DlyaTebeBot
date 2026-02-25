@@ -43,3 +43,8 @@ class TgUserRepo:
     @sync_to_async
     def get_all_users() -> list[TgUser]:
         return list(TgUser.objects.all())
+
+    @staticmethod
+    @sync_to_async
+    def get_admins() -> list[TgUser]:
+        return list(TgUser.objects.filter(is_admin=True))

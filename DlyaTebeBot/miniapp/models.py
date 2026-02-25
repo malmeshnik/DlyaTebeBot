@@ -154,3 +154,47 @@ class Banner(models.Model):
     class Meta:
         verbose_name = "Банер"
         verbose_name_plural = "Банери"
+
+class Order(models.Model):
+    STATUS_CHOICES = (
+        ("new", "Нове"),
+        ("in_progress", "В роботі"),
+        ("done", "Завершено"),
+        ("canceled", "Скасовано"),
+    )
+
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name="orders",
+        verbose_name="Продукт"
+    )
+
+    variant = models.ForeignKey(
+        ProductVariant,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Варіант"
+    )
+
+    price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Ціна")
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="new",
+        verbose_name="Статус"
+    )
+
+    telegram_message_id = models.BigIntegerField(null=True, blank=True)
+    telegram_chat_id = models.BigIntegerField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Order #{self.id} - {self.product.name}"
+    
+    class Meta:
+        verbose_name = "Замовлення"
+        verbose_name_plural = "Замовлення"

@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Gender, Brand, Product, ProductImage, Banner, ProductVariant
+from .models import Gender, Brand, Product, ProductImage, Banner, ProductVariant, Order
 
 
 class ProductVariantInline(admin.TabularInline):
@@ -129,3 +129,48 @@ class ProductAdmin(admin.ModelAdmin):
 @admin.register(Banner)
 class BannerAdmin(admin.ModelAdmin):
     list_display = ("image", "link")
+
+
+@admin.register(Order)
+class OrderAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "product",
+        "variant",
+        "price",
+        "colored_status",
+        "created_at",
+    )
+
+    list_filter = ("status", "created_at")
+    search_fields = ("product__name", "id")
+    ordering = ("-created_at",)
+
+    readonly_fields = (
+        "product",
+        "variant",
+        "price",
+        "telegram_chat_id",
+        "created_at",
+    )
+
+    def colored_status(self, obj):
+        colors = {
+            "new": "#3B82F6",
+            "in_progress": "#F59E0B",
+            "done": "#10B981",
+            "canceled": "#EF4444",
+        }
+
+        color = colors.get(obj.status, "#000")
+
+        return format_html(
+            '<span style="color: {}; font-weight: 600;">{}</span>',
+            color,
+            obj.get_status_display()
+        )
+
+    colored_status.short_description = "Статус"
+
+    def has_add_permission(self, request):
+        return False

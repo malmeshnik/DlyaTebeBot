@@ -9,6 +9,7 @@ class TgUserAdmin(admin.ModelAdmin):
         "first_name",
         "last_name",
         "phone_number",
+        "is_admin",
         "created_at",
         "updated_at",
     )
