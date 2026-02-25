@@ -4,6 +4,7 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     KeyboardButton,
     InlineKeyboardButton,
+    WebAppInfo
 )
 
 
@@ -24,7 +25,10 @@ def main_menu_keyboard() -> ReplyKeyboardMarkup:
     builder.add(
         InlineKeyboardButton(text="🛍️ Мої покупки", switch_inline_query_current_chat="my_purchaces")
     )
-    builder.add(InlineKeyboardButton(text="📦 Каталог", callback_data="catalog"))
+    builder.add(InlineKeyboardButton(text="📦 Каталог", web_app=WebAppInfo(
+                url="https://dlyatebebot.com/miniapp/"
+            )
+    ))
     builder.add(
         InlineKeyboardButton(text="☎️ Зв'язатися з нами", callback_data="contact_us")
     )

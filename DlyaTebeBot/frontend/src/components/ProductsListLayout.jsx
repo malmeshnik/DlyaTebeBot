@@ -1,6 +1,6 @@
 import { useEffect } from "react";
-import FilterSortBar from "./filterSortBar";
-import ProductCard from "./productCard";
+import FilterSortBar from "./FilterSortBar";
+import ProductCard from "./ProductCard";
 
 const ProductsListLayout = ({
   products = [],

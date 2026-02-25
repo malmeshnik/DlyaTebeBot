@@ -8,7 +8,7 @@ import Layout from "./components/Layout";
 
 const App = () => {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/miniapp">
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<HomePage />} />
