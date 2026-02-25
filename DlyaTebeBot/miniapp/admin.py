@@ -56,7 +56,7 @@ class ProductAdmin(admin.ModelAdmin):
         "created_at",
     )
 
-    inlines = [ProductImageInline, ProductVariantInline]
+    inlines = [ProductVariantInline]
 
     fieldsets = (
         ("📦 Основна інформація", {
