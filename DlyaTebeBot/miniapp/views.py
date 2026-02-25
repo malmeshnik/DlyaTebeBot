@@ -1,9 +1,9 @@
 from rest_framework import viewsets
 from rest_framework.permissions import AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Case, When, Value, IntegerField
+from django.db.models import Case, When, Value, IntegerField, Prefetch
 from rest_framework.filters import SearchFilter, OrderingFilter
-from .models import Gender, Product, Brand, Banner
+from .models import Gender, Product, Brand, Banner, ProductVariant
 from .serializers import (
     GenderSerializer,
     ProductSerializer,
@@ -64,6 +64,12 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
                 "id",
             )
             .select_related("brand", "gender")
+            .prefetch_related(
+                    Prefetch(
+                    "variants",
+                    queryset=ProductVariant.objects.filter(is_active=True)
+                )
+            )
         )
 
 
