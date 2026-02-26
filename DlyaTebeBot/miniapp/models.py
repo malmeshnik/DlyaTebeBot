@@ -195,6 +195,10 @@ class Order(models.Model):
     def __str__(self):
         return f"Order #{self.id} - {self.product.name}"
     
+    @property
+    def order_name(self):
+        return f"Замовлення #{self.id}"
+    
     class Meta:
         verbose_name = "Замовлення"
         verbose_name_plural = "Замовлення"

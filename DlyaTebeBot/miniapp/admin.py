@@ -134,7 +134,7 @@ class BannerAdmin(admin.ModelAdmin):
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
     list_display = (
-        "id",
+        "order_name",
         "product",
         "variant",
         "price",

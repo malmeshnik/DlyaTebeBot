@@ -382,6 +382,6 @@ async def send_alerts_for_admin(order: Order, product_name = None, variant = Non
     async with Bot(bot_token) as bot:
         for admin in admins:
             try:
-                await bot.send_message(admin.telegram_id, message)
+                await bot.send_message(admin.telegram_id, message, parse_mode="HTML")
             except Exception as e:
                 logger.error(f'Error sending message for admin: {e}')

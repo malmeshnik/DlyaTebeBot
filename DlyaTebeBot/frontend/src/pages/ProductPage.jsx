@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 import { fetchProduct } from "../store/productsSlice";
 
 import ProductGallery from "../components/ProductGallery";
+import BuyButton from "../components/BuyButton";
 
 const ProductPage = () => {
   const { slug } = useParams();
@@ -99,19 +100,10 @@ const ProductPage = () => {
             </span>
           </div>
 
-          {/* BUY BUTTON */}
-          <button
-            className="
-              mt-6 w-full bg-black text-white py-3 rounded-xl
-              font-semibold text-lg transition
-              hover:bg-gray-800 active:scale-95
-            "
-            onClick={() =>
-              console.log("Купити:", product.id, selectedVariantId)
-            }
-          >
-            Купити
-          </button>
+          <BuyButton
+            productId={product.id}
+            variantId={selectedVariant?.id}
+          />
 
           {/* DESCRIPTION */}
           {product.characteristics && (
