@@ -10,9 +10,6 @@ const ProductCard = ({ product }) => {
     hasVariants ? product.variants[0].id : null
   );
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-
   const selectedVariant = useMemo(() => {
     if (!hasVariants) return null;
     return product.variants.find(v => v.id === selectedVariantId);
@@ -20,32 +17,6 @@ const ProductCard = ({ product }) => {
 
   const displayPrice = selectedVariant?.price || product.price;
   const displayOldPrice = selectedVariant?.old_price || product.old_price;
-
-  const handleBuy = async () => {
-    try {
-      setIsLoading(true);
-
-      const res = await fetch(
-        "/api/miniapp/orders/create_order/",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            product_id: product.id,
-            variant_id: selectedVariant?.id || null,
-          }),
-        }
-      );
-
-      if (!res.ok) throw new Error("Помилка створення замовлення");
-
-      setShowModal(true);
-    } catch (err) {
-      alert("Сталася помилка. Спробуйте ще раз.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   return (
     <>
