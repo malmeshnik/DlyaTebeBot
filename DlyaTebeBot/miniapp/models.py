@@ -162,6 +162,14 @@ class Order(models.Model):
         ("done", "Завершено"),
         ("canceled", "Скасовано"),
     )
+    user = models.ForeignKey(
+        "bot.TgUser",
+        on_delete=models.CASCADE,
+        related_name="orders",
+        verbose_name="Користувач",
+        null=True,
+        blank=True
+    )
 
     product = models.ForeignKey(
         Product,

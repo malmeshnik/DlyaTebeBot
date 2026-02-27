@@ -14,6 +14,14 @@ class TgUserRepo:
         )
 
         return user, created
+    
+    @staticmethod
+    def get_or_create(telegram_id: int, **kwargs) -> tuple[TgUser, bool]:
+        user, created = TgUser.objects.get_or_create(
+            telegram_id=telegram_id, defaults=kwargs
+        )
+
+        return user, created
 
     @staticmethod
     @sync_to_async

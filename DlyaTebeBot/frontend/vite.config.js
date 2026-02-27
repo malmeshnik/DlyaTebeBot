@@ -7,6 +7,9 @@ export default defineConfig({
   // На проді забрати проксування на локалхост. Там працює nginx
   server: {
     port: 5173,
+    allowedHosts: [
+      "bb6d-91-229-122-68.ngrok-free.app"
+    ],
     proxy: {
       "/api": {
         target: "http://localhost:8000",

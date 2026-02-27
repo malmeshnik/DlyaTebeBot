@@ -1,10 +1,14 @@
+import json
 from asgiref.sync import async_to_sync
 
 from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
+from django.conf import settings
 from django.db.models import Case, When, Value, IntegerField, Prefetch
 from rest_framework.filters import SearchFilter, OrderingFilter
 from .models import Gender, Product, Brand, Banner, ProductVariant, Order
@@ -15,7 +19,9 @@ from .serializers import (
     BannerSerializer
 )
 from .filters import ProductFilter
+from .telegram_auth import check_telegram_auth
 from bot.tg_bot.utils import send_alerts_for_admin
+from bot.tg_bot.repo import TgUserRepo
 
 class GenderViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -97,10 +103,13 @@ class BannerViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Banner.objects.all()
 
 class OrderViewSet(viewsets.GenericViewSet):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     @action(detail=False, methods=["post"])
     def create_order(self, request):
+
+        user = request.user
+
         product_id = request.data.get("product_id")
         variant_id = request.data.get("variant_id")
 
@@ -120,13 +129,70 @@ class OrderViewSet(viewsets.GenericViewSet):
                 pass
 
         order = Order.objects.create(
+            user=user,
             product=product,
             variant=variant,
             price=price
         )
 
         product_name = product.name
+        volume = variant.volume_ml if variant else None
 
-        async_to_sync(send_alerts_for_admin)(order, product_name, variant.volume_ml)
+        async_to_sync(send_alerts_for_admin)(order, product_name, volume)
 
-        return Response({"order_id": order.id}, status=status.HTTP_201_CREATED)
+        return Response(
+            {"order_id": order.id},
+            status=status.HTTP_201_CREATED
+        )
+    
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def telegram_auth(request):
+    repo = TgUserRepo()
+
+    init_data = request.data.get("initData")
+
+    if not init_data:
+        return Response(
+            {"error": "initData is required"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    data = check_telegram_auth(init_data, settings.BOT_TOKEN)
+
+    if not data:
+        return Response(
+            {"error": "Invalid Telegram data"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        user_data = json.loads(data.get("user"))
+    except Exception:
+        return Response(
+            {"error": "Invalid user data"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    telegram_id = user_data["id"]
+
+    user, created = repo.get_or_create(
+        telegram_id=telegram_id,
+        defaults={
+            "username": user_data.get("username"),
+            "first_name": user_data.get("first_name"),
+            "last_name": user_data.get("last_name"),
+        }
+    )
+
+    refresh = RefreshToken.for_user(user)
+
+    return Response({
+        "access": str(refresh.access_token),
+        "refresh": str(refresh),
+        "user": {
+            "id": user.id,
+            "telegram_id": user.telegram_id,
+            "username": user.username,
+        }
+    })
