@@ -1,6 +1,8 @@
+from typing import Optional, Iterable
 from asgiref.sync import sync_to_async
+from django.db import transaction
 
-from ..models import TgUser
+from ..models import TgUser, TgMessage, TgMessageMedia, TgMessageReaction
 
 
 class TgUserRepo:
@@ -37,7 +39,9 @@ class TgUserRepo:
     @staticmethod
     @sync_to_async
     def get_user(telegram_id: int) -> TgUser | None:
-        return TgUser.objects.filter(telegram_id=telegram_id).first()
+        users = TgUser.objects.filter(telegram_id=telegram_id)
+        
+        return users.first() if users else None
 
     @staticmethod
     @sync_to_async
@@ -48,3 +52,108 @@ class TgUserRepo:
     @sync_to_async
     def get_admins() -> list[TgUser]:
         return list(TgUser.objects.filter(is_admin=True))
+    
+class TgMessageRepo:
+
+    @staticmethod
+    @sync_to_async
+    def upsert_message(
+        message_id: int,
+        chat_id: int,
+        defaults: dict,
+        user: Optional[TgUser] = None,
+    ) -> TgMessage:
+
+        defaults["user"] = user
+
+        obj, _ = TgMessage.objects.update_or_create(
+            message_id=message_id,
+            chat_id=chat_id,
+            defaults=defaults
+        )
+
+        return obj
+    
+    @staticmethod
+    @sync_to_async
+    def mark_as_edited(
+        message_id: int,
+        chat_id: int,
+        text: Optional[str],
+        edit_date
+    ) -> None:
+
+        TgMessage.objects.filter(
+            message_id=message_id,
+            chat_id=chat_id
+        ).update(
+            text=text,
+            is_edited=True,
+            edit_date=edit_date
+        )
+
+    @staticmethod
+    @sync_to_async
+    def bulk_create_media(
+        message_id: int,
+        media_list: Iterable[dict]
+    ) -> None:
+
+        objects = [
+            TgMessageMedia(
+                message_id=message_id,
+                **media_data
+            )
+            for media_data in media_list
+        ]
+
+        TgMessageMedia.objects.bulk_create(
+            objects,
+            ignore_conflicts=True
+        )
+
+    @staticmethod
+    @sync_to_async
+    @transaction.atomic
+    def replace_user_reactions(
+        message_id: int,
+        user: TgUser,
+        emojis: list[str]
+    ) -> None:
+
+        TgMessageReaction.objects.filter(
+            message_id=message_id,
+            user=user
+        ).delete()
+
+        if not emojis:
+            return
+
+        TgMessageReaction.objects.bulk_create(
+            [
+                TgMessageReaction(
+                    message_id=message_id,
+                    user=user,
+                    emoji=emoji
+                )
+                for emoji in emojis
+            ]
+        )
+
+    @staticmethod
+    @sync_to_async
+    def get_message(
+        message_id: int,
+        chat_id: int
+    ) -> Optional[TgMessage]:
+
+        return (
+            TgMessage.objects
+            .select_related("user")
+            .only("id", "message_id", "chat_id", "user")
+            .filter(
+                message_id=message_id,
+                chat_id=chat_id
+            )
+            .first()
+        )
