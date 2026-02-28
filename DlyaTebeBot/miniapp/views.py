@@ -1,5 +1,6 @@
 import json
 from asgiref.sync import async_to_sync
+from loguru import logger
 
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
@@ -31,6 +32,7 @@ class GenderViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Gender.objects.all().order_by("id")
     serializer_class = GenderSerializer
     lookup_field = "slug"
+    permission_classes = [AllowAny]
 
 
 class ProductViewSet(viewsets.ReadOnlyModelViewSet):
@@ -38,7 +40,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     Products list & detail.
     Default ordering: sort_order ASC
     """
-
+    permission_classes = [AllowAny]
     serializer_class = ProductSerializer
     lookup_field = "slug"
 
@@ -86,6 +88,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
 class BrandViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = BrandSerializer
     lookup_field = "slug"
+    permission_classes = [AllowAny]
 
     def get_queryset(self):
         queryset = Brand.objects.all().order_by("id")
@@ -103,15 +106,20 @@ class BannerViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Banner.objects.all()
 
 class OrderViewSet(viewsets.GenericViewSet):
-    permission_classes = [IsAuthenticated]
-
+    permission_classes = [AllowAny]
+    
     @action(detail=False, methods=["post"])
     def create_order(self, request):
-
-        user = request.user
-
         product_id = request.data.get("product_id")
         variant_id = request.data.get("variant_id")
+        telegram_id = request.data.get("telegram_id")
+
+        logger.info(f"Creating order: product_id={product_id}, variant_id={variant_id}, telegram_id={telegram_id}")
+
+        try:
+            user = TgUserRepo.get(telegram_id=int(telegram_id))
+        except TgUserRepo.DoesNotExist:
+            return Response({"error": "User not found"}, status=404)
 
         try:
             product = Product.objects.get(id=product_id)
@@ -148,11 +156,12 @@ class OrderViewSet(viewsets.GenericViewSet):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def telegram_auth(request):
-    repo = TgUserRepo()
+    logger.info(f"Telegram auth request data: {request.data}")
 
     init_data = request.data.get("initData")
 
     if not init_data:
+        logger.error(f"initData is required for Telegram auth")
         return Response(
             {"error": "initData is required"},
             status=status.HTTP_400_BAD_REQUEST
@@ -161,6 +170,7 @@ def telegram_auth(request):
     data = check_telegram_auth(init_data, settings.BOT_TOKEN)
 
     if not data:
+        logger.error(f"Invalid Telegram data")
         return Response(
             {"error": "Invalid Telegram data"},
             status=status.HTTP_400_BAD_REQUEST
@@ -168,7 +178,10 @@ def telegram_auth(request):
 
     try:
         user_data = json.loads(data.get("user"))
+
+        logger.info(f"Telegram auth data: {user_data}")
     except Exception:
+        logger.error(f"Invalid user data")
         return Response(
             {"error": "Invalid user data"},
             status=status.HTTP_400_BAD_REQUEST
@@ -176,7 +189,7 @@ def telegram_auth(request):
 
     telegram_id = user_data["id"]
 
-    user, created = repo.get_or_create(
+    user, created = TgUserRepo.get_or_create(
         telegram_id=telegram_id,
         defaults={
             "username": user_data.get("username"),

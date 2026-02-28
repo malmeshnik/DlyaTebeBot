@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 
+import api from "../api/client";
+
 const BuyButton = ({ productId, variantId }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -9,23 +11,40 @@ const BuyButton = ({ productId, variantId }) => {
     try {
       setIsLoading(true);
 
-      const res = await fetch(
-        "/api/miniapp/orders/create_order/",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            product_id: productId,
-            variant_id: variantId || null,
-          }),
-        }
-      );
+      const telegramId = localStorage.getItem("telegram_id");
 
-      if (!res.ok) throw new Error();
+      console.log("SENDING:", {
+        product_id: productId,
+        variant_id: variantId || null,
+        telegram_id: telegramId
+      });
+
+      await api.post("orders/create_order/", {
+        product_id: productId,
+        variant_id: variantId || null,
+        telegram_id: telegramId
+      });
 
       setShowModal(true);
+
     } catch (err) {
-      alert("Сталася помилка. Спробуйте ще раз.");
+      console.error("Order error:", err);
+
+      let errorMessage = "Сталася невідома помилка.";
+
+      if (err.response) {
+        if (typeof err.response.data === "string") {
+          errorMessage = err.response.data;
+        } else if (err.response.data.detail) {
+          errorMessage = err.response.data.detail;
+        } else {
+          errorMessage = JSON.stringify(err.response.data, null, 2);
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+
+      alert(errorMessage);
     } finally {
       setIsLoading(false);
     }

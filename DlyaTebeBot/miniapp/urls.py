@@ -5,7 +5,8 @@ from .views import (
     ProductViewSet,
     BannerViewSet,
     BrandViewSet,
-    OrderViewSet
+    OrderViewSet,
+    telegram_auth
 )
 
 router = DefaultRouter()
@@ -16,5 +17,6 @@ router.register(r"banners", BannerViewSet, basename="banners")
 router.register(r"orders", OrderViewSet, basename="orders")
 
 urlpatterns = [
+    path("telegram-auth/", telegram_auth, name="telegram-auth"),
     path("", include(router.urls)),
 ]

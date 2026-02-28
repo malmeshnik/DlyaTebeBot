@@ -22,6 +22,16 @@ class TgUserRepo:
         )
 
         return user, created
+    
+    @staticmethod
+    def get(telegram_id: int, **kwargs) -> TgUser:
+        try:
+            return TgUser.objects.get(telegram_id=telegram_id, **kwargs)
+        except TgUser.DoesNotExist:
+            raise TgUserRepo.DoesNotExist("TgUser not found")
+
+    class DoesNotExist(Exception):
+        pass
 
     @staticmethod
     @sync_to_async
