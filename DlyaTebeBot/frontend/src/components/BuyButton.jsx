@@ -30,19 +30,7 @@ const BuyButton = ({ productId, variantId }) => {
     } catch (err) {
       console.error("Order error:", err);
 
-      let errorMessage = "Сталася невідома помилка.";
-
-      if (err.response) {
-        if (typeof err.response.data === "string") {
-          errorMessage = err.response.data;
-        } else if (err.response.data.detail) {
-          errorMessage = err.response.data.detail;
-        } else {
-          errorMessage = JSON.stringify(err.response.data, null, 2);
-        }
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
+      let errorMessage = "Сталася невідома помилка. Спробуйте ще раз.";
 
       alert(errorMessage);
     } finally {

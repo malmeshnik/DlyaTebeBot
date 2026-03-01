@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useState, useMemo } from "react";
+import { useEffect } from "react";
 
 import BuyButton from "./BuyButton";
 
@@ -17,6 +18,13 @@ const ProductCard = ({ product }) => {
 
   const displayPrice = selectedVariant?.price || product.price;
   const displayOldPrice = selectedVariant?.old_price || product.old_price;
+
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const telegramId = localStorage.getItem("telegram_id");
+    setIsAuthenticated(!!telegramId);
+  }, []);
 
   return (
     <>
@@ -87,10 +95,12 @@ const ProductCard = ({ product }) => {
         </div>
 
         <div className="mt-auto">
-          <BuyButton
-            productId={product.id}
-            variantId={selectedVariant?.id}
-          />
+          {isAuthenticated && (
+            <BuyButton
+              productId={product.id}
+              variantId={selectedVariant?.id}
+            />
+          )}
         </div>
 
       </div>

@@ -364,7 +364,7 @@ async def scheduler_messages():
                     mime=mime,
                 )
 
-async def send_alerts_for_admin(order: Order, product_name = None, variant = None):
+async def send_alerts_for_admin(order: Order, product_name = None, variant = None, product_photo = None):
     tg_user_repo = TgUserRepo()
     admins = await tg_user_repo.get_admins()
 
@@ -379,9 +379,21 @@ async def send_alerts_for_admin(order: Order, product_name = None, variant = Non
         f"<b>Ціна:</b> {order.price} грн"
     )
 
+    builder = InlineKeyboardBuilder()
+    builder.add(
+        InlineKeyboardButton(
+            text="Переглянути замовлення",
+            url=f"{settings.DOMAIN}/admin/miniapp/order/{order.id}/change/"
+        )
+    )
+    keyboard = builder.as_markup()
+
     async with Bot(bot_token) as bot:
         for admin in admins:
             try:
-                await bot.send_message(admin.telegram_id, message, parse_mode="HTML")
+                if product_photo:
+                    await bot.send_photo(admin.telegram_id, FSInputFile(product_photo), caption=message, parse_mode="HTML", reply_markup=keyboard)
+                else:
+                    await bot.send_message(admin.telegram_id, message, parse_mode="HTML", reply_markup=keyboard)
             except Exception as e:
                 logger.error(f'Error sending message for admin: {e}')

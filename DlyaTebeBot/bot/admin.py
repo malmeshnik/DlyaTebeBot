@@ -207,21 +207,3 @@ class TgUserAdmin(admin.ModelAdmin):
         logger.info(f'Grouped messages count: {len(grouped_messages)}')
 
         return render(request, "admin/chat_view.html", context)
-
-
-@admin.register(TgMessage)
-class TgMessageAdmin(admin.ModelAdmin):
-    list_display = ("message_id", "chat_id", "user", "text", "date", "is_edited")
-    list_filter = ("is_edited", "date")
-    search_fields = ("text", "caption")
-    readonly_fields = (
-        "message_id",
-        "chat_id",
-        "user",
-        "text",
-        "caption",
-        "date",
-        "is_edited",
-        "raw_data",
-    )
-    ordering = ("-date",)

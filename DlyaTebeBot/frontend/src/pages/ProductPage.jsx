@@ -17,11 +17,17 @@ const ProductPage = () => {
 
   const [selectedVariantId, setSelectedVariantId] = useState(null);
 
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const telegramId = localStorage.getItem("telegram_id");
+    setIsAuthenticated(!!telegramId);
+  }, []);
+
   useEffect(() => {
     dispatch(fetchProduct(slug));
   }, [dispatch, slug]);
 
-  // Коли продукт завантажився → вибираємо перший варіант
   useEffect(() => {
     if (product?.variants?.length > 0) {
       setSelectedVariantId(product.variants[0].id);
@@ -100,10 +106,12 @@ const ProductPage = () => {
             </span>
           </div>
 
-          <BuyButton
-            productId={product.id}
-            variantId={selectedVariant?.id}
-          />
+          {isAuthenticated && (
+            <BuyButton
+              productId={product.id}
+              variantId={selectedVariant?.id}
+            />
+          )}
 
           {/* DESCRIPTION */}
           {product.characteristics && (

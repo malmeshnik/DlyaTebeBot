@@ -19,7 +19,7 @@ from django.conf import settings
 
 from bots_settings.repo import MessageRepo, PromoCampaignRepo
 from ..repo import TgUserRepo
-from ..keyboards.user import get_contact_keyboard, main_menu_keyboard, promo as promo_kb
+from ..keyboards.user import get_contact_keyboard, main_menu_keyboard, restart_menu_keyboard, promo as promo_kb
 from ..states import UserStates
 from ..utils import send_message, edit_message, edit_message_by_id, generate_qr_code
 from ...api import ApiCRM
@@ -83,8 +83,16 @@ async def handle_contact(message: Message, bot: Bot, state: FSMContext) -> None:
         logger.info(f"New user created: {tg_user.first_name}")
 
     if phone_number:
-        msg = await message.answer("deletecontact", reply_markup=ReplyKeyboardRemove())
-        await msg.delete()
+        try:
+            await send_message(
+                    message=message,
+                    message_name="hello",
+                    user_repo=tg_user_repo,
+                    keyboard=restart_menu_keyboard(),
+                )
+        except:
+            pass
+            
         await send_message(
             message=message,
             message_name="contact_received",
@@ -147,7 +155,11 @@ async def bonus_card_message(query: CallbackQuery) -> None:
     bonus_value = consumer.bonus if consumer else 0
     photo = generate_qr_code(phone)
 
-    await query.message.delete()
+    try:
+        await query.message.delete()
+    except:
+        pass
+        
     await send_message(
         message=query.message,
         message_name="bonus_card",
@@ -298,3 +310,8 @@ async def inline_my_purchaces(query: InlineQuery):
                 )
 
     await query.answer(results=results[:20], cache_time=1, is_personal=True)
+
+@router.message(F.text == "♻️ Оновити меню")
+async def restart_menu(message: Message):
+    keyboard = main_menu_keyboard()
+    await message.answer("Меню оновлено!", reply_markup=keyboard)

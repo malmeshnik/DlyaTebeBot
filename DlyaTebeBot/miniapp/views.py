@@ -145,8 +145,9 @@ class OrderViewSet(viewsets.GenericViewSet):
 
         product_name = product.name
         volume = variant.volume_ml if variant else None
+        product_photo = product.image.path if product.image else None
 
-        async_to_sync(send_alerts_for_admin)(order, product_name, volume)
+        async_to_sync(send_alerts_for_admin)(order, product_name, volume, product_photo)
 
         return Response(
             {"order_id": order.id},
