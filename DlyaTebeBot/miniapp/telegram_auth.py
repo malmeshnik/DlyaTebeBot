@@ -34,7 +34,20 @@ def check_telegram_auth(init_data: str, bot_token: str) -> dict | None:
         digestmod=hashlib.sha256
     ).hexdigest()
 
-    # if not hmac.compare_digest(calculated_hash, received_hash):
-    #     return None
+    if not hmac.compare_digest(calculated_hash, received_hash):
+        return None
+
+    auth_date = data.get("auth_date")
+    if not auth_date:
+        return None
+
+    try:
+        auth_timestamp = int(auth_date)
+        current_timestamp = int(time.time())
+        # Replay protection: check if auth_date is within the last 24 hours
+        if abs(current_timestamp - auth_timestamp) > 86400:
+            return None
+    except (ValueError, TypeError):
+        return None
 
     return data

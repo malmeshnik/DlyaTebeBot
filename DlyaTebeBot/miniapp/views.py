@@ -3,7 +3,8 @@ from asgiref.sync import async_to_sync
 from loguru import logger
 
 from rest_framework import viewsets, status
-from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.decorators import action, api_view, permission_classes, throttle_classes
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
@@ -17,7 +18,8 @@ from .serializers import (
     GenderSerializer,
     ProductSerializer,
     BrandSerializer,
-    BannerSerializer
+    BannerSerializer,
+    OrderCreateSerializer
 )
 from .filters import ProductFilter
 from .telegram_auth import check_telegram_auth
@@ -106,35 +108,27 @@ class BannerViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Banner.objects.all()
 
 class OrderViewSet(viewsets.GenericViewSet):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
     
     @action(detail=False, methods=["post"])
     def create_order(self, request):
-        product_id = request.data.get("product_id")
-        variant_id = request.data.get("variant_id")
-        telegram_id = request.data.get("telegram_id")
+        serializer = OrderCreateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        logger.info(f"Creating order: product_id={product_id}, variant_id={variant_id}, telegram_id={telegram_id}")
+        product_id = serializer.validated_data.get("product_id")
+        variant_id = serializer.validated_data.get("variant_id")
+        user = request.user
 
-        try:
-            user = TgUserRepo.get(telegram_id=int(telegram_id))
-        except TgUserRepo.DoesNotExist:
-            return Response({"error": "User not found"}, status=404)
+        logger.info(f"Creating order: product_id={product_id}, variant_id={variant_id}, user={user.id}")
 
-        try:
-            product = Product.objects.get(id=product_id)
-        except Product.DoesNotExist:
-            return Response({"error": "Product not found"}, status=404)
-
+        product = Product.objects.get(id=product_id)
         variant = None
         price = product.price
 
         if variant_id:
-            try:
-                variant = ProductVariant.objects.get(id=variant_id)
-                price = variant.price
-            except ProductVariant.DoesNotExist:
-                pass
+            variant = ProductVariant.objects.get(id=variant_id)
+            price = variant.price
 
         order = Order.objects.create(
             user=user,
@@ -156,7 +150,9 @@ class OrderViewSet(viewsets.GenericViewSet):
     
 @api_view(["POST"])
 @permission_classes([AllowAny])
+@throttle_classes([ScopedRateThrottle])
 def telegram_auth(request):
+    request.throttle_scope = "telegram_auth"
     logger.info(f"Telegram auth request data: {request.data}")
 
     init_data = request.data.get("initData")
@@ -188,10 +184,15 @@ def telegram_auth(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    telegram_id = user_data["id"]
+    telegram_id = user_data.get("id")
+    if not telegram_id:
+        return Response(
+            {"error": "Invalid user data: missing id"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     user, created = TgUserRepo.get_or_create(
-        telegram_id=telegram_id,
+        telegram_id=int(telegram_id),
         defaults={
             "username": user_data.get("username"),
             "first_name": user_data.get("first_name"),

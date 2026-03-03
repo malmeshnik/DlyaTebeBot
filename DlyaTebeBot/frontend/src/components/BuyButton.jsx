@@ -11,18 +11,14 @@ const BuyButton = ({ productId, variantId }) => {
     try {
       setIsLoading(true);
 
-      const telegramId = localStorage.getItem("telegram_id");
-
       console.log("SENDING:", {
         product_id: productId,
         variant_id: variantId || null,
-        telegram_id: telegramId
       });
 
       await api.post("orders/create_order/", {
         product_id: productId,
         variant_id: variantId || null,
-        telegram_id: telegramId
       });
 
       setShowModal(true);
