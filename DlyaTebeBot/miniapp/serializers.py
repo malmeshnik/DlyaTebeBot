@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Gender, Product, ProductImage, Banner, Brand
+from .models import Gender, Product, ProductImage, Banner, Brand, ProductVariant
 
 
 class BannerSerializer(serializers.ModelSerializer):
@@ -30,11 +30,22 @@ class BrandSerializer(serializers.ModelSerializer):
         model = Brand
         fields = ("id", "name", "slug", "gender", "image")
 
+class ProductVariantSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductVariant
+        fields = (
+            "id",
+            "volume_ml",
+            "price",
+            "old_price",
+            "is_active",
+        )
 
 class ProductSerializer(serializers.ModelSerializer):
     gender = GenderSerializer(read_only=True)
     brand = BrandSerializer(read_only=True)
     gallery = ProductImageSerializer(many=True, read_only=True)
+    variants = ProductVariantSerializer(many=True, read_only=True)
 
     class Meta:
         model = Product
@@ -52,4 +63,20 @@ class ProductSerializer(serializers.ModelSerializer):
             "available",
             "sort_order",
             "gallery",
+            "variants",
         )
+
+
+class OrderCreateSerializer(serializers.Serializer):
+    product_id = serializers.IntegerField()
+    variant_id = serializers.IntegerField(required=False, allow_null=True)
+
+    def validate_product_id(self, value):
+        if not Product.objects.filter(id=value).exists():
+            raise serializers.ValidationError("Product not found")
+        return value
+
+    def validate_variant_id(self, value):
+        if value and not ProductVariant.objects.filter(id=value).exists():
+            raise serializers.ValidationError("Product variant not found")
+        return value

@@ -67,7 +67,7 @@ class Product(models.Model):
         verbose_name="Бренд",
     )
     
-    price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Цена")
+    price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Ціна")
     old_price = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -98,6 +98,35 @@ class Product(models.Model):
         verbose_name = "Продукт"
         verbose_name_plural = "Продукти"
 
+class ProductVariant(models.Model):
+    product = models.ForeignKey(
+        Product, 
+        on_delete=models.CASCADE, 
+        blank=True, 
+        null=True, 
+        verbose_name="Продукт",
+        related_name="variants"
+    )
+    volume_ml = models.PositiveIntegerField(verbose_name="Кількість мл.")
+    price = models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Ціна')
+    old_price = models.DecimalField(
+        decimal_places=2, 
+        max_digits=10,
+        blank=True,
+        null=True,
+        verbose_name="Ціна до скидки"
+    )
+    is_active = models.BooleanField(default=True, verbose_name="Активно")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.product.name} {self.volume_ml} ML"
+
+    class Meta:
+        verbose_name = "Варіант продукту"
+        verbose_name_plural = "Варіанти продуктів"
+
 
 class ProductImage(models.Model):
     product = models.ForeignKey(
@@ -125,3 +154,59 @@ class Banner(models.Model):
     class Meta:
         verbose_name = "Банер"
         verbose_name_plural = "Банери"
+
+class Order(models.Model):
+    STATUS_CHOICES = (
+        ("new", "Нове"),
+        ("in_progress", "В роботі"),
+        ("done", "Завершено"),
+        ("canceled", "Скасовано"),
+    )
+    user = models.ForeignKey(
+        "bot.TgUser",
+        on_delete=models.CASCADE,
+        related_name="orders",
+        verbose_name="Користувач",
+        null=True,
+        blank=True
+    )
+
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name="orders",
+        verbose_name="Продукт"
+    )
+
+    variant = models.ForeignKey(
+        ProductVariant,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Варіант"
+    )
+
+    price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Ціна")
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="new",
+        verbose_name="Статус"
+    )
+
+    telegram_message_id = models.BigIntegerField(null=True, blank=True)
+    telegram_chat_id = models.BigIntegerField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Order #{self.id} - {self.product.name}"
+    
+    @property
+    def order_name(self):
+        return f"Замовлення #{self.id}"
+    
+    class Meta:
+        verbose_name = "Замовлення"
+        verbose_name_plural = "Замовлення"

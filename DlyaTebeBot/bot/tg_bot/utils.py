@@ -30,6 +30,7 @@ from django.utils import timezone
 from bots_settings.models import Message as DbMessage
 from bots_settings.repo import MessageRepo, BroadCastMessageRepo, PromoCampaignRepo
 from .repo import TgUserRepo
+from miniapp.models import Order
 
 
 async def get_keyboard_for_message(
@@ -362,3 +363,37 @@ async def scheduler_messages():
                     media_file=media_file,
                     mime=mime,
                 )
+
+async def send_alerts_for_admin(order: Order, product_name = None, variant = None, product_photo = None):
+    tg_user_repo = TgUserRepo()
+    admins = await tg_user_repo.get_admins()
+
+    bot_token = settings.BOT_TOKEN
+
+    variant_text = f"{variant} ml" if variant else "—"
+
+    message = (
+        f"🛒 <b>НОВЕ ЗАМОВЛЕННЯ #{order.id}</b>\n\n"
+        f"<b>Товар:</b> {product_name}\n"
+        f"<b>Варіант:</b> {variant_text}\n"
+        f"<b>Ціна:</b> {order.price} грн"
+    )
+
+    builder = InlineKeyboardBuilder()
+    builder.add(
+        InlineKeyboardButton(
+            text="Переглянути замовлення",
+            url=f"{settings.DOMAIN}/admin/miniapp/order/{order.id}/change/"
+        )
+    )
+    keyboard = builder.as_markup()
+
+    async with Bot(bot_token) as bot:
+        for admin in admins:
+            try:
+                if product_photo:
+                    await bot.send_photo(admin.telegram_id, FSInputFile(product_photo), caption=message, parse_mode="HTML", reply_markup=keyboard)
+                else:
+                    await bot.send_message(admin.telegram_id, message, parse_mode="HTML", reply_markup=keyboard)
+            except Exception as e:
+                logger.error(f'Error sending message for admin: {e}')

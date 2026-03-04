@@ -7,6 +7,11 @@ from aiogram.types import (
     WebAppInfo
 )
 
+def restart_menu_keyboard() -> ReplyKeyboardMarkup:
+    builder = ReplyKeyboardBuilder()
+    builder.add(KeyboardButton(text="♻️ Оновити меню"))
+    return builder.as_markup(resize_keyboard=True)
+
 
 def get_contact_keyboard() -> ReplyKeyboardMarkup:
     builder = ReplyKeyboardBuilder()
