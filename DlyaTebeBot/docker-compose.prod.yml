@@ -49,6 +49,7 @@ services:
     build: .
     command: python manage.py scheduler
     volumes:
+      - media_volume:/app/media
       - .:/app
     env_file:
       - .env

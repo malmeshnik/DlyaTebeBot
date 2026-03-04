@@ -12,9 +12,9 @@ class ButtonInline(admin.TabularInline):
 
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
-    list_display = ("name", "created_at", "updated_at")
+    list_display = ("name", "description", "created_at", "updated_at")
     search_fields = ("name",)
-    readonly_fields = ("created_at", "updated_at")
+    readonly_fields = ("name", "description", "created_at", "updated_at")
 
     inlines = [ButtonInline]
 

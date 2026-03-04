@@ -32,6 +32,14 @@ class TgUser(models.Model):
         verbose_name = "Користувач Telegram"
         verbose_name_plural = "Користувачі Telegram"
 
+    @property
+    def is_authenticated(self):
+        return True
+
+    @property
+    def is_anonymous(self):
+        return False
+
 class TgMessage(models.Model):
     message_id = models.BigIntegerField()
     chat_id = models.BigIntegerField()

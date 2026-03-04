@@ -174,7 +174,14 @@ def telegram_auth(request):
         )
 
     try:
-        user_data = json.loads(data.get("user"))
+        user_data = data.get("user", None)
+
+        if not user_data:
+            logger.error(f"Invalid user data in Telegram auth")
+            return Response(
+                {"error": "Invalid user data"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         logger.info(f"Telegram auth data: {user_data}")
     except Exception:
@@ -200,7 +207,10 @@ def telegram_auth(request):
         }
     )
 
-    refresh = RefreshToken.for_user(user)
+    refresh = RefreshToken()
+
+    refresh["telegram_id"] = user.telegram_id
+    refresh["user_id"] = user.id
 
     return Response({
         "access": str(refresh.access_token),

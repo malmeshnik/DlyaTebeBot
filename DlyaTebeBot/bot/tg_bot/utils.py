@@ -320,11 +320,11 @@ async def check_and_send_promo():
         )
 
         if promo.start_date == today:
-            msg = await msg_repo.get_message_by_name("start_promo")
+            msg = await msg_repo.aget_message_by_name("start_promo")
         elif promo.end_date == today:
-            msg = await msg_repo.get_message_by_name("end_promo")
+            msg = await msg_repo.aget_message_by_name("end_promo")
         elif promo.end_date - timedelta(days=3) == today:
-            msg = await msg_repo.get_message_by_name("before_end_promo")
+            msg = await msg_repo.aget_message_by_name("before_end_promo")
         else:
             continue
 
@@ -348,6 +348,7 @@ async def scheduler_messages():
             await sync_to_async(message.save)()
 
             media_file = FSInputFile(message.image.path) if message.image else None
+            logger.info(f"Path to media file: {message.image.path if message.image else 'No media'}")
             mime, _ = (
                 mimetypes.guess_type(message.image.path)
                 if message.image

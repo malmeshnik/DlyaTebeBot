@@ -23,10 +23,12 @@ help_text_msg = format_html(
     ),
     "{bonus} = Кількість бонусів користувача",
     "{name} = Ім'я користувача",
+    "{promo_name} = Назва акції",
 )
 
 class Message(models.Model):
     name = models.CharField(max_length=200, verbose_name="Назва повідомлення")
+    description = models.TextField(verbose_name="Опис повідомлення", blank=True, null=True)
     image = models.ImageField(
         upload_to="messages/", blank=True, null=True, verbose_name="Зображення"
     )

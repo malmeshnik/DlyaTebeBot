@@ -70,6 +70,10 @@ class TgUserRepo:
     @sync_to_async
     def get_admins() -> list[TgUser]:
         return list(TgUser.objects.filter(is_admin=True))
+
+    @staticmethod
+    def get_by_telegram_id(telegram_id: int) -> Optional[TgUser]:
+        return TgUser.objects.filter(telegram_id=telegram_id).first()
     
 class TgMessageRepo:
 
