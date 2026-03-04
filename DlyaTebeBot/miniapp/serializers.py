@@ -65,3 +65,18 @@ class ProductSerializer(serializers.ModelSerializer):
             "gallery",
             "variants",
         )
+
+
+class OrderCreateSerializer(serializers.Serializer):
+    product_id = serializers.IntegerField()
+    variant_id = serializers.IntegerField(required=False, allow_null=True)
+
+    def validate_product_id(self, value):
+        if not Product.objects.filter(id=value).exists():
+            raise serializers.ValidationError("Product not found")
+        return value
+
+    def validate_variant_id(self, value):
+        if value and not ProductVariant.objects.filter(id=value).exists():
+            raise serializers.ValidationError("Product variant not found")
+        return value
