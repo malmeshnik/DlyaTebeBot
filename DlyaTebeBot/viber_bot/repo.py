@@ -1,4 +1,4 @@
-from .models import ViberUser
+from .models import ViberUser, ViberMessage
 
 
 class ViberUserRepo:
@@ -11,3 +11,14 @@ class ViberUserRepo:
         user = ViberUser.objects.get(viber_id=user_id)
 
         return user.phone_number
+
+
+class ViberMessageRepo:
+    @staticmethod
+    def create(user, text, is_bot=False, timestamp=None):
+        return ViberMessage.objects.create(
+            user=user,
+            text=text,
+            is_bot=is_bot,
+            timestamp=timestamp
+        )

@@ -33,3 +33,24 @@ class ViberUser(models.Model):
     class Meta:
         verbose_name = "Користувач Viber"
         verbose_name_plural = "Користувачі Viber"
+
+
+class ViberMessage(models.Model):
+    user = models.ForeignKey(
+        ViberUser,
+        on_delete=models.CASCADE,
+        related_name="messages",
+        verbose_name="Користувач"
+    )
+    text = models.TextField(verbose_name="Текст", null=True, blank=True)
+    is_bot = models.BooleanField(default=False, verbose_name="Від бота")
+    timestamp = models.BigIntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Створено")
+
+    def __str__(self):
+        return f"{self.user.name}: {self.text[:50]}"
+
+    class Meta:
+        verbose_name = "Повідомлення Viber"
+        verbose_name_plural = "Повідомлення Viber"
+        ordering = ("created_at",)

@@ -12,7 +12,7 @@ from viberbot.api.messages import ContactMessage, TextMessage
 from bot.api import ApiCRM
 from bots_settings.repo import PromoCampaignRepo, MessageRepo
 from .services import ViberService
-from .repo import ViberUserRepo
+from .repo import ViberUserRepo, ViberMessageRepo
 from .fsm import get_state
 
 
@@ -61,6 +61,19 @@ def handle_request(viber_request: Any, viber: Optional[Any] = None) -> None:
         f"user_id={user_id} | time={datetime.now().isoformat()} | action={action} | text={text}"
     )
 
+    # Store incoming message
+    if isinstance(viber_request, ViberMessageRequest):
+        user, _ = repo.update_or_create(
+            user_id,
+            name=viber_request.sender.name,
+        )
+        ViberMessageRepo.create(
+            user=user,
+            text=getattr(viber_request.message, "text", ""),
+            is_bot=False,
+            timestamp=viber_request.timestamp
+        )
+
     for h in handlers:
         if h["type"] and not isinstance(viber_request, h["type"]):
             continue
@@ -100,7 +113,7 @@ def hello(viber_request: Any, viber: Optional[Any] = None) -> None:
 @viber_handler(text="__CHECK_PRICE__")
 def check_price(viber_request: Any, viber: Optional[Any] = None) -> None:
     user_id = viber_request.sender.id
-    messages = service.handle_default()
+    messages = service.handle_default(user_id)
     viber.send_messages(user_id, messages)
 
 
@@ -188,5 +201,5 @@ def handle_promo_details(viber_request: Any, viber: Optional[Any] = None) -> Non
 @viber_handler(request_type=TextMessage)
 def answer_to_message(viber_request: Any, viber: Optional[Any] = None) -> None:
     user_id = viber_request.sender.id
-    messages = service.handle_default()
+    messages = service.handle_default(user_id)
     viber.send_messages(user_id, messages)

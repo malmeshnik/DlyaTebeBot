@@ -71,6 +71,11 @@ def viber_webhook(request):
     if request.method != "POST":
         return HttpResponse(status=405)
 
+    # Verify signature
+    signature = request.META.get("HTTP_X_VIBER_CONTENT_SIGNATURE")
+    if not viber.verify_signature(request.body, signature):
+        return HttpResponse(status=403)
+
     viber_request = viber.parse_request(request.body)
     handle_request(viber_request, viber)
 
