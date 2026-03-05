@@ -20,7 +20,7 @@ const ProductPage = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    const telegramId = localStorage.getItem("telegram_id");
+    const telegramId = localStorage.getItem("access");
     setIsAuthenticated(!!telegramId);
   }, []);
 

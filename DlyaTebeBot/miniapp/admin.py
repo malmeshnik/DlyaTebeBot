@@ -12,6 +12,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from aiogram import Bot
 
 from bot.models import TgUser, TgMessage
+from viber_bot.models import ViberUser, ViberMessage
 from .models import Gender, Brand, Product, ProductImage, Banner, ProductVariant, Order
 
 class AdminReplyForm(forms.Form):
@@ -210,6 +211,7 @@ class OrderAdmin(admin.ModelAdmin):
     readonly_fields = (
         "product",
         "user",
+        "platform",
         "variant",
         "price",
         "telegram_chat_id",
@@ -220,6 +222,7 @@ class OrderAdmin(admin.ModelAdmin):
     fields = (
         "product",
         "user",
+        "platform",
         "variant",
         "price",
         "status",
@@ -251,86 +254,15 @@ class OrderAdmin(admin.ModelAdmin):
 
 
     def open_chat(self, obj):
-        url = reverse("admin:tguser-chat", args=[obj.user.id])
+        if not obj.user:
+            return "-"
+
+        if isinstance(obj.user, TgUser):
+            url = reverse("admin:tguser-chat", args=[obj.user.id])
+        else:
+            url = reverse("admin:viberuser-chat", args=[obj.user.id])
+
         return format_html(
             '<a class="button" href="{}">💬 Відкрити чат</a>',
             url
         )
-
-    def get_urls(self):
-        urls = super().get_urls()
-        custom_urls = [
-            path(
-                "chat/<int:user_id>/",
-                self.admin_site.admin_view(self.chat_view),
-                name="tguser-chat",
-            ),
-        ]
-        return custom_urls + urls
-
-    def chat_view(self, request, user_id):
-        user = get_object_or_404(TgUser, pk=user_id)
-
-        messages = (
-            user.messages
-            .prefetch_related("media")
-            .order_by("date")
-        )
-
-        raw_groups = []
-        current_group = []
-        prev_msg = None
-
-        for msg in messages:
-            if not prev_msg:
-                current_group = [msg]
-            else:
-                same_author = msg.is_bot == prev_msg.is_bot
-                close_time = abs((msg.date - prev_msg.date).total_seconds()) < 300
-
-                if same_author and close_time:
-                    current_group.append(msg)
-                else:
-                    raw_groups.append(current_group)
-                    current_group = [msg]
-            prev_msg = msg
-
-        if current_group:
-            raw_groups.append(current_group)
-
-        grouped_messages = [_build_group(g) for g in raw_groups]
-
-        form = AdminReplyForm(request.POST or None)
-
-        if request.method == "POST" and form.is_valid():
-            text = form.cleaned_data["text"]
-
-            async def send_message():
-                async with Bot(settings.BOT_TOKEN) as bot:
-                    return await bot.send_message(
-                        chat_id=user.telegram_id,
-                        text=text
-                    )
-
-            sent_message = async_to_sync(send_message)()
-
-            TgMessage.objects.create(
-                message_id=sent_message.message_id,
-                chat_id=user.telegram_id,
-                user=user,
-                text=text,
-                is_bot=True,
-                date=sent_message.date,
-            )
-
-            return redirect(request.path)
-
-        context = {
-            "user": user,
-            "grouped_messages": grouped_messages,
-            "form": form,
-        }
-
-        logger.info(f'Grouped messages count: {len(grouped_messages)}')
-
-        return render(request, "admin/chat_view.html", context)

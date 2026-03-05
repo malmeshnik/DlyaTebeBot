@@ -2,6 +2,8 @@ from typing import Optional, List
 from dataclasses import dataclass
 
 from .constants import SOCIAL_MEDIA_URLS
+from .utils import generate_login_token
+from .repo import ViberUserRepo
 
 @dataclass
 class Button:
@@ -108,7 +110,8 @@ def create_menu_button(text: str, action_body: str) -> Button:
         text_size="large",
     )
 
-def main_menu():
+def main_menu(user_id):
+    miniapp_token = ViberUserRepo.get_miniapp_token(user_id)
     kb = Keyboard()
     kb.add(
         create_menu_button("💳 Моя бонусна карта", "my_bonus_card"),
@@ -118,7 +121,7 @@ def main_menu():
         Button(
             text="<b>📦 Каталог</b>",
             action_type="open-url",
-            action_body=SOCIAL_MEDIA_URLS["catalog"],
+            action_body=f"https://dlyatebebot.com/miniapp/?token={miniapp_token}",
             text_size="large",
             silent=True
         ),

@@ -162,11 +162,20 @@ class Order(models.Model):
         ("done", "Завершено"),
         ("canceled", "Скасовано"),
     )
-    user = models.ForeignKey(
+    tg_user = models.ForeignKey(
         "bot.TgUser",
         on_delete=models.CASCADE,
         related_name="orders",
-        verbose_name="Користувач",
+        verbose_name="Телеграм користувач",
+        null=True,
+        blank=True
+    )
+
+    viber_user = models.ForeignKey(
+        "viber_bot.ViberUser",
+        on_delete=models.CASCADE,
+        related_name="orders",
+        verbose_name="Вайбер користувач",
         null=True,
         blank=True
     )
@@ -206,6 +215,14 @@ class Order(models.Model):
     @property
     def order_name(self):
         return f"Замовлення #{self.id}"
+    
+    @property
+    def user(self):
+        return self.tg_user if self.tg_user else self.viber_user
+
+    @property
+    def platform(self):
+        return "Viber" if self.viber_user else "Telegram"
     
     class Meta:
         verbose_name = "Замовлення"

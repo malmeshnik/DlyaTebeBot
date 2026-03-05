@@ -1,3 +1,5 @@
+import secrets
+
 from django.db import models
 from django.conf import settings
 
@@ -24,6 +26,10 @@ class ViberUser(models.Model):
         max_length=20, verbose_name="Номер телефону", null=True, blank=True
     )
 
+    miniapp_token = models.CharField(
+        max_length=255, verbose_name="Токен для miniapp", unique=True, default=secrets.token_urlsafe
+    )
+
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата створення")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата оновлення")
 
@@ -33,6 +39,14 @@ class ViberUser(models.Model):
     class Meta:
         verbose_name = "Користувач Viber"
         verbose_name_plural = "Користувачі Viber"
+
+    @property
+    def is_authenticated(self):
+        return True
+
+    @property
+    def is_anonymous(self):
+        return False
 
 
 class ViberMessage(models.Model):

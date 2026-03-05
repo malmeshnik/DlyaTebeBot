@@ -5,6 +5,7 @@ from django.conf import settings
 import jwt
 
 from bot.tg_bot.repo import TgUserRepo
+from viber_bot.repo import ViberUserRepo
 
 class TelegramJWTAuthentication(BaseAuthentication):
 
@@ -32,5 +33,34 @@ class TelegramJWTAuthentication(BaseAuthentication):
             return None
 
         user = TgUserRepo.get_by_telegram_id(telegram_id)
+
+        return (user, None)
+
+class ViberJWTAuthentication(BaseAuthentication):
+
+    def authenticate(self, request):
+
+        header = request.headers.get("Authorization")
+
+        if not header:
+            return None
+
+        token = header.split()[1]
+
+        try:
+            payload = jwt.decode(
+                token,
+                settings.SECRET_KEY,
+                algorithms=["HS256"]
+            )
+        except jwt.PyJWTError:
+            raise InvalidToken()
+
+        viber_id = payload.get("viber_id")
+
+        if not viber_id:
+            return None
+
+        user = ViberUserRepo.get(viber_id)
 
         return (user, None)

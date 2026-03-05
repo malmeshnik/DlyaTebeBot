@@ -8,7 +8,7 @@ import {
   ArrowLeftIcon,
 } from "@heroicons/react/24/outline";
 import { setParams } from "../store/productsSlice";
-import useTelegramAuth from "../hooks/AuthHook";
+import useMiniAppAuth from "../hooks/useMiniAppAuth";
 
 const Layout = () => {
   const dispatch = useDispatch();
@@ -21,7 +21,7 @@ const Layout = () => {
     setIsAuthReady(true);
   }, []);
 
-  useTelegramAuth(handleAuthDone);
+  useMiniAppAuth(handleAuthDone);
 
   useEffect(() => {
     const t = setTimeout(() => {

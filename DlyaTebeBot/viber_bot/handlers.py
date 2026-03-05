@@ -171,21 +171,21 @@ def handle_bonus_card(viber_request: Any, viber: Optional[Any] = None) -> None:
 @viber_handler(text="contact_us")
 def handle_contact_us(viber_request: Any, viber: Optional[Any] = None) -> None:
     user_id = viber_request.sender.id
-    messages = service.handle_contact_us()
+    messages = service.handle_contact_us(user_id)
     viber.send_messages(user_id, messages)
 
 
 @viber_handler(text="social_media")
 def handel_social_media(viber_request: Any, viber: Optional[Any] = None) -> None:
     user_id = viber_request.sender.id
-    messages = service.handle_social_media()
+    messages = service.handle_social_media(user_id)
     viber.send_messages(user_id, messages)
 
 
 @viber_handler(text="promo")
 def promocampaigns(viber_request: Any, viber: Optional[Any] = None) -> None:
     user_id = viber_request.sender.id
-    messages = service.handle_promo()
+    messages = service.handle_promo(user_id)
     viber.send_messages(user_id, messages)
 
 
@@ -208,7 +208,7 @@ def handle_purchase_details(viber_request: Any, viber: Optional[Any] = None) -> 
 def handle_promo_details(viber_request: Any, viber: Optional[Any] = None) -> None:
     promo_id = int(viber_request.message.text.split("_")[1])
     user_id = viber_request.sender.id
-    messages = service.handle_promo_details(promo_id)
+    messages = service.handle_promo_details(promo_id, user_id)
     viber.send_messages(user_id, messages)
 
 

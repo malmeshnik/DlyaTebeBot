@@ -40,7 +40,7 @@ class ViberService:
             return [
                 TextMessage(
                     text=text,
-                    keyboard=main_menu(),
+                    keyboard=main_menu(user_id),
                     min_api_version=6,
                 )
             ]
@@ -55,7 +55,7 @@ class ViberService:
         return [
             TextMessage(
                 text=text,
-                keyboard=main_menu(),
+                keyboard=main_menu(user_id),
                 min_api_version=6,
             )
         ]
@@ -75,12 +75,12 @@ class ViberService:
             PictureMessage(
                 text=text,
                 media=settings.VIBER_WEBHOOK_BASE_URL + qr_url,
-                keyboard=main_menu(),
+                keyboard=main_menu(user_id),
                 min_api_version=6,
             )
         ]
 
-    def handle_promo(self) -> List[RichMediaMessage]:
+    def handle_promo(self, user_id: str) -> List[RichMediaMessage]:
         promos = self.promo_repo.get_active_campaigns()
 
         if promos:
@@ -92,7 +92,7 @@ class ViberService:
                 RichMediaMessage(
                     rich_media=builder.build_rich_media(),
                     min_api_version=6,
-                    keyboard=main_menu(),
+                    keyboard=main_menu(user_id),
                 )
             ]
 
@@ -100,18 +100,18 @@ class ViberService:
             return [
                 TextMessage(
                     text="Наразі немає активних акцій",
-                    keyboard=main_menu(),
+                    keyboard=main_menu(user_id),
                     min_api_version=6,
                 )
             ]
 
-    def handle_promo_details(self, promo_id: int) -> List[PictureMessage]:
+    def handle_promo_details(self, promo_id: int, user_id: str) -> List[PictureMessage]:
         promo = self.promo_repo.get_promo(promo_id)
         return [
             PictureMessage(
                 text=f"{promo.name}\n\n{promo.description}",
                 media=promo.image_url,
-                keyboard=main_menu(),
+                keyboard=main_menu(user_id),
                 min_api_version=6,
             )
         ]
@@ -123,7 +123,7 @@ class ViberService:
             return [
                 TextMessage(
                     text="У вас поки що немає покупок",
-                    keyboard=main_menu(),
+                    keyboard=main_menu(user_id),
                     min_api_version=6,
                 )
             ]
@@ -141,7 +141,7 @@ class ViberService:
             RichMediaMessage(
                 rich_media=builder.build_rich_media(),
                 min_api_version=6,
-                keyboard=main_menu(),
+                keyboard=main_menu(user_id),
             )
         ]
 
@@ -156,7 +156,7 @@ class ViberService:
             return [
                 TextMessage(
                     text="Деталі покупки не знайдені.",
-                    keyboard=main_menu(),
+                    keyboard=main_menu(user_id),
                     min_api_version=6,
                 )
             ]
@@ -180,11 +180,11 @@ class ViberService:
             RichMediaMessage(
                 rich_media=builder.build_rich_media(),
                 min_api_version=6,
-                keyboard=main_menu(),
+                keyboard=main_menu(user_id),
             )
         ]
 
-    def handle_social_media(self) -> List[RichMediaMessage]:
+    def handle_social_media(self, user_id: str) -> List[RichMediaMessage]:
         builder = SocialMediaBuilder()
         builder.add_header()
         builder.add_spacer()
@@ -195,16 +195,16 @@ class ViberService:
         return [
             RichMediaMessage(
                 rich_media=builder.build_rich_media(),
-                keyboard=main_menu(),
+                keyboard=main_menu(user_id),
                 min_api_version=6,
             )
         ]
 
-    def handle_contact_us(self) -> List[TextMessage]:
+    def handle_contact_us(self, user_id: str) -> List[TextMessage]:
         return [
             TextMessage(
                 text=self.msg_repo.get_text("contact_request"),
-                keyboard=main_menu(),
+                keyboard=main_menu(user_id),
                 min_api_version=6,
             )
         ]
@@ -217,7 +217,7 @@ class ViberService:
         return [
             TextMessage(
                 text=text,
-                keyboard=main_menu(),
+                keyboard=main_menu(user_id),
                 min_api_version=6,
             )
         ]

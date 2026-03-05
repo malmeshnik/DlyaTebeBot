@@ -12,10 +12,28 @@ class ViberUserRepo:
 
         return user.phone_number
 
+    @staticmethod
+    def get(user_id):
+        user = ViberUser.objects.filter(viber_id=user_id).first()
+
+        return user
+
+    @staticmethod
+    def get_miniapp_token(user_id):
+        user = ViberUser.objects.filter(viber_id=user_id).first()
+
+        return user.miniapp_token
+
+    @staticmethod
+    def get_by_miniapp_token(token):
+        user = ViberUser.objects.filter(miniapp_token=token).first()
+
+        return user
+
 
 class ViberMessageRepo:
     @staticmethod
-    def create(user, text, media_url, is_bot=False, timestamp=None):
+    def create(user, text, media_url=None, is_bot=False, timestamp=None):
         return ViberMessage.objects.create(
             user=user,
             text=text,

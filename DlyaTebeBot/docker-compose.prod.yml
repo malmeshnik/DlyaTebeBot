@@ -69,16 +69,16 @@ services:
       - db
     restart: unless-stopped
 
-  viber_bot:
-    build: .
-    command: python manage.py set_viber_webhook
-    volumes:
-      - .:/app
-    env_file:
-      - .env
-    depends_on:
-      - db
-    restart: unless-stopped
+  # viber_bot:
+  #   build: .
+  #   command: python manage.py set_viber_webhook
+  #   volumes:
+  #     - .:/app
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     - db
+  #   restart: unless-stopped
 
   miniapp-frontend:
     build:

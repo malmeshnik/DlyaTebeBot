@@ -6,7 +6,8 @@ from .views import (
     BannerViewSet,
     BrandViewSet,
     OrderViewSet,
-    telegram_auth
+    telegram_auth,
+    viber_auth,
 )
 
 router = DefaultRouter()
@@ -18,5 +19,6 @@ router.register(r"orders", OrderViewSet, basename="orders")
 
 urlpatterns = [
     path("telegram-auth/", telegram_auth, name="telegram-auth"),
+    path("viber-auth/", viber_auth, name="viber-auth"),
     path("", include(router.urls)),
 ]

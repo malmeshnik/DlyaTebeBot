@@ -22,9 +22,12 @@ from .serializers import (
     OrderCreateSerializer
 )
 from .filters import ProductFilter
-from .telegram_auth import check_telegram_auth
+from .telegram_auth import check_telegram_auth, check_viber_auth
 from bot.tg_bot.utils import send_alerts_for_admin
 from bot.tg_bot.repo import TgUserRepo
+from bot.models import TgUser
+from viber_bot.repo import ViberUserRepo
+from viber_bot.models import ViberUser
 
 class GenderViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -130,12 +133,20 @@ class OrderViewSet(viewsets.GenericViewSet):
             variant = ProductVariant.objects.get(id=variant_id)
             price = variant.price
 
-        order = Order.objects.create(
-            user=user,
-            product=product,
-            variant=variant,
-            price=price
-        )
+
+        order_data = {
+            "product": product,
+            "variant": variant,
+            "price": price
+        }
+
+        if isinstance(user, TgUser):
+            order_data["tg_user"] = user
+
+        elif isinstance(user, ViberUser):
+            order_data["viber_user"] = user
+
+        order = Order.objects.create(**order_data)
 
         product_name = product.name
         volume = variant.volume_ml if variant else None
@@ -194,12 +205,12 @@ def telegram_auth(request):
     telegram_id = user_data.get("id")
     if not telegram_id:
         return Response(
-            {"error": "Invalid user data: missing id"},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+        {"error": "Invalid user id"},
+        status=status.HTTP_400_BAD_REQUEST
+    )
 
-    user, created = TgUserRepo.get_or_create(
-        telegram_id=int(telegram_id),
+    user, _ = TgUserRepo.get_or_create(
+        telegram_id=telegram_id,
         defaults={
             "username": user_data.get("username"),
             "first_name": user_data.get("first_name"),
@@ -219,5 +230,42 @@ def telegram_auth(request):
             "id": user.id,
             "telegram_id": user.telegram_id,
             "username": user.username,
+        }
+    })
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+@throttle_classes([ScopedRateThrottle])
+def viber_auth(request):
+
+    request.throttle_scope = "viber_auth"
+
+    miniapp_token = request.data.get("token")
+
+    if not miniapp_token:
+        return Response(
+            {"error": "Invalid auth data"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    user = ViberUserRepo.get_by_miniapp_token(miniapp_token)
+
+    if not user:
+        return Response(
+            {"error": "Invalid token"},
+            status=403
+        )
+
+    refresh = RefreshToken()
+
+    refresh["viber_id"] = user.viber_id
+    refresh["user_id"] = user.id
+
+    return Response({
+        "access": str(refresh.access_token),
+        "refresh": str(refresh),
+        "user": {
+            "id": user.id,
+            "viber_id": user.viber_id
         }
     })

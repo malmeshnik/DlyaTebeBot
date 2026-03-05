@@ -8,6 +8,7 @@ from viberbot.api.messages import TextMessage
 
 from .models import ViberUser, ViberMessage
 from .views import viber
+from .keyboards import main_menu
 
 class ViberAdminReplyForm(forms.Form):
     text = forms.CharField(widget=forms.Textarea)
@@ -54,7 +55,7 @@ class ViberUserAdmin(admin.ModelAdmin):
             text = form.cleaned_data["text"]
 
             # Send via Viber API
-            viber.send_messages(user.viber_id, [TextMessage(text=text)])
+            viber.send_messages(user.viber_id, [TextMessage(text=text, keyboard=main_menu(user.viber_id), min_api_version=6)])
 
             # Save to database
             ViberMessage.objects.create(
@@ -80,9 +81,3 @@ class ViberUserAdmin(admin.ModelAdmin):
         }
 
         return render(request, "admin/viber_chat_view.html", context)
-
-@admin.register(ViberMessage)
-class ViberMessageAdmin(admin.ModelAdmin):
-    list_display = ("user", "text", "is_bot", "created_at")
-    list_filter = ("is_bot", "created_at")
-    search_fields = ("text", "user__name", "user__viber_id")
