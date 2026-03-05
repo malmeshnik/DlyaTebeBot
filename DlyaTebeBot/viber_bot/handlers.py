@@ -12,7 +12,7 @@ from viberbot.api.messages import ContactMessage, TextMessage
 from bot.api import ApiCRM
 from bots_settings.repo import PromoCampaignRepo, MessageRepo
 from .services import ViberService
-from .repo import ViberUserRepo
+from .repo import ViberUserRepo, ViberMessageRepo
 from .fsm import get_state
 
 
@@ -44,6 +44,7 @@ def viber_handler(
 
 
 def handle_request(viber_request: Any, viber: Optional[Any] = None) -> None:
+    logger.info(viber_request.__dict__)
     user_id = getattr(getattr(viber_request, "sender", None), "id", None)
     if user_id is None:
         user_id = getattr(getattr(viber_request, "user", None), "id", None)
@@ -60,6 +61,32 @@ def handle_request(viber_request: Any, viber: Optional[Any] = None) -> None:
     logger.info(
         f"user_id={user_id} | time={datetime.now().isoformat()} | action={action} | text={text}"
     )
+
+    # Store incoming message
+    if isinstance(viber_request, ViberMessageRequest):
+        logger.info(vars(viber_request.message))
+
+        message = viber_request.message
+        message_type = getattr(message, "_message_type", "_text")
+
+        text = getattr(message, "text", "")
+        media_url = None
+
+        if message_type == "picture":
+            media_url = getattr(message, "_media", None)
+
+        user, _ = repo.update_or_create(
+            user_id,
+            name=viber_request.sender.name,
+        )
+
+        ViberMessageRepo.create(
+            user=user,
+            text=text,
+            media_url=media_url,
+            is_bot=False,
+            timestamp=viber_request.timestamp
+        )
 
     for h in handlers:
         if h["type"] and not isinstance(viber_request, h["type"]):
@@ -100,7 +127,7 @@ def hello(viber_request: Any, viber: Optional[Any] = None) -> None:
 @viber_handler(text="__CHECK_PRICE__")
 def check_price(viber_request: Any, viber: Optional[Any] = None) -> None:
     user_id = viber_request.sender.id
-    messages = service.handle_default()
+    messages = service.handle_default(user_id)
     viber.send_messages(user_id, messages)
 
 
@@ -188,5 +215,5 @@ def handle_promo_details(viber_request: Any, viber: Optional[Any] = None) -> Non
 @viber_handler(request_type=TextMessage)
 def answer_to_message(viber_request: Any, viber: Optional[Any] = None) -> None:
     user_id = viber_request.sender.id
-    messages = service.handle_default()
+    messages = service.handle_default(user_id)
     viber.send_messages(user_id, messages)

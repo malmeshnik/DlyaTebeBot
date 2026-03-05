@@ -11,6 +11,7 @@ from .repo import ViberUserRepo
 from .utils import generate_qr_code
 from .builders import PromoCardBuilder, PurchaseCardBuilder, SocialMediaBuilder
 from .fsm import get_state, set_state, clear_state
+from .repo import ViberMessageRepo
 
 
 @dataclass
@@ -22,11 +23,14 @@ class ViberService:
 
     def handle_start(self, user_id: str, user_name: str) -> List[TextMessage]:
         user, created = self.repo.update_or_create(user_id, name=user_name)
+        text = self.msg_repo.get_text("start")
+        ViberMessageRepo.create(user=user, text=text, is_bot=True)
+
         if created:
             set_state(user_id, "contact")
             return [
                 TextMessage(
-                    text=self.msg_repo.get_text("start"),
+                    text=text,
                     keyboard=contact(),
                     min_api_version=6,
                 )
@@ -35,7 +39,7 @@ class ViberService:
             clear_state(user_id)
             return [
                 TextMessage(
-                    text=self.msg_repo.get_text("start"),
+                    text=text,
                     keyboard=main_menu(),
                     min_api_version=6,
                 )
@@ -44,11 +48,13 @@ class ViberService:
     def handle_contact(
         self, user_id: str, user_name: str, phone: str
     ) -> List[TextMessage]:
-        self.repo.update_or_create(user_id, name=user_name, phone_number=phone)
+        user, _ = self.repo.update_or_create(user_id, name=user_name, phone_number=phone)
         clear_state(user_id)
+        text = self.msg_repo.get_text("contact_received")
+        ViberMessageRepo.create(user=user, text=text, is_bot=True)
         return [
             TextMessage(
-                text=self.msg_repo.get_text("contact_received"),
+                text=text,
                 keyboard=main_menu(),
                 min_api_version=6,
             )
@@ -58,11 +64,16 @@ class ViberService:
         phone = self.repo.get_phone(user_id)
         qr_url = generate_qr_code(phone)
         consumer = self.crm_client.get_consumer_info(phone)
+        text = self.msg_repo.get_viber_text("bonus_card").format(
+            name=consumer.first_name, bonus=consumer.bonus
+        )
+
+        user, _ = self.repo.update_or_create(user_id)
+        ViberMessageRepo.create(user=user, text=text, is_bot=True)
+
         return [
             PictureMessage(
-                text=self.msg_repo.get_viber_text("bonus_card").format(
-                    name=consumer.first_name, bonus=consumer.bonus
-                ),
+                text=text,
                 media=settings.VIBER_WEBHOOK_BASE_URL + qr_url,
                 keyboard=main_menu(),
                 min_api_version=6,
@@ -198,10 +209,14 @@ class ViberService:
             )
         ]
 
-    def handle_default(self) -> List[TextMessage]:
+    def handle_default(self, user_id: Optional[str] = None) -> List[TextMessage]:
+        text = "Головне меню"
+        if user_id:
+            user, _ = self.repo.update_or_create(user_id)
+            ViberMessageRepo.create(user=user, text=text, is_bot=True)
         return [
             TextMessage(
-                text="Головне меню",
+                text=text,
                 keyboard=main_menu(),
                 min_api_version=6,
             )
