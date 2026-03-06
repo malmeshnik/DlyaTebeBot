@@ -27,7 +27,6 @@ const useMiniAppAuth = (onDone) => {
       return;
     }
 
-    // VIBER AUTH
     const params = new URLSearchParams(window.location.search);
 
     const miniapp_token = params.get("token");

@@ -54,6 +54,8 @@ def handle_request(viber_request: Any, viber: Optional[Any] = None) -> None:
     text = ""
     action = None
 
+    
+
     if isinstance(viber_request, ViberMessageRequest):
         text = getattr(viber_request.message, "text", "")
         action = getattr(viber_request.message, "action_body", text)
