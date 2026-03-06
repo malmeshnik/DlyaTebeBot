@@ -195,3 +195,66 @@ class SocialMediaBuilder:
             "BgColor": BUTTON_COLORS["default"],
             "Buttons": self.buttons,
         }
+
+@dataclass
+class BroadcastCardBuilder:
+    buttons: List[Button] = field(default_factory=list)
+
+    def add_image(self, image_url: str) -> "BroadcastCardBuilder":
+        self.buttons.append(
+            Button(
+                rows=2,
+                image=image_url,
+                action_type="none",
+                bg_color=BUTTON_COLORS["default"],
+            )
+        )
+        return self
+
+    def add_text(self, text: str, rows=3) -> "BroadcastCardBuilder":
+        self.buttons.append(
+            Button(
+                rows=rows,
+                text=text,
+                action_type="none",
+                text_size="large",
+                border_color=BUTTON_COLORS["default"],
+            )
+        )
+        return self
+
+    def add_menu_button(self) -> "BroadcastCardBuilder":
+        self.buttons.append(
+            Button(
+                rows=1,
+                text="<b>📋 Показати меню</b>",
+                action_type="reply",
+                action_body="show_menu",
+                bg_color=BUTTON_COLORS["accent"],
+                border_color=BUTTON_COLORS["default"],
+                text_h_align="center",
+            )
+        )
+        return self
+
+    def add_unsubscribe_button(self) -> "BroadcastCardBuilder":
+        self.buttons.append(
+            Button(
+                columns=6,
+                rows=1,
+                text="<font color='#FFFFFF'><b>❌ Відписатися</b></font>",
+                bg_color="#E74C3C",
+                action_type="reply",
+                action_body="unsubscribe",
+            )
+        )
+        return self
+
+    def build(self) -> Dict[str, Any]:
+        return {
+            "Type": "rich_media",
+            "ButtonsGroupColumns": 6,
+            "ButtonsGroupRows": 7,
+            "BgColor": "#FFFFFF",
+            "Buttons": [btn.to_dict() for btn in self.buttons],
+        }

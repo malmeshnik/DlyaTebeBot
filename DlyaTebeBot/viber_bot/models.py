@@ -66,6 +66,10 @@ class ViberMessage(models.Model):
         return f"{self.user.name}: {self.text[:50]}"
 
     class Meta:
+        indexes = [
+            models.Index(fields=["created_at"]),
+            models.Index(fields=["user", "created_at"]),
+        ]
         verbose_name = "Повідомлення Viber"
         verbose_name_plural = "Повідомлення Viber"
         ordering = ("created_at",)

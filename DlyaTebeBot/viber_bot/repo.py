@@ -1,3 +1,6 @@
+from datetime import timedelta
+from django.utils import timezone
+
 from .models import ViberUser, ViberMessage
 
 
@@ -41,3 +44,17 @@ class ViberMessageRepo:
             is_bot=is_bot,
             timestamp=timestamp
         )
+
+    @staticmethod
+    def get_user_ids_less_24():
+        since = timezone.now() - timedelta(hours=24)
+
+        user_ids = list(
+            ViberMessage.objects
+            .filter(created_at__gte=since, is_bot=False)
+            .order_by()
+            .values_list("user__viber_id", flat=True)
+            .distinct()
+        )
+
+        return user_ids
