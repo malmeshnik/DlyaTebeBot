@@ -14,6 +14,8 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
+from celery.schedules import crontab
+
 load_dotenv()
 
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -28,7 +30,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
 CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
@@ -181,7 +183,8 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 20,
 }
 
-CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
+#TODO CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
+# CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
 
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
@@ -194,3 +197,36 @@ DOMAIN = os.getenv("DOMAIN")
 VIBER_BOT_TOKEN = os.getenv("VIBER_BOT_TOKEN")
 VIBER_WEBHOOK_BASE_URL = os.getenv("VIBER_WEBHOOK_BASE_URL")
 VIBER_WEBHOOK_PATH = os.getenv("VIBER_WEBHOOK_PATH")
+
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://redis:6379/0")
+
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://redis:6379/0")
+
+CELERY_ACCEPT_CONTENT = ["json"]
+
+CELERY_TASK_SERIALIZER = "json"
+
+CELERY_TIMEZONE = TIME_ZONE
+
+CELERY_BEAT_SCHEDULE = {
+
+    "check_promo_daily": {
+        "task": "bot.tasks.check_and_send_promo_task",
+        "schedule": crontab(hour=9, minute=0),
+    },
+
+    "scheduler_messages_every_minute": {
+        "task": "bot.tasks.scheduler_messages_task",
+        "schedule": 60.0,
+    },
+
+    "viber_check_promo_daily": {
+        "task": "viber_bot.tasks.check_and_send_promo_task",
+        "schedule": crontab(hour=9, minute=0),
+    },
+
+    "viber_scheduler_messages_every_minute": {
+        "task": "viber_bot.tasks.scheduler_messages_task",
+        "schedule": 60.0,
+    },
+}

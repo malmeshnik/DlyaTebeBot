@@ -15,15 +15,15 @@ services:
     depends_on:
       - db
 
-  schedulers:
-    build: .
-    command: python manage.py scheduler
+  redis:
+    image: redis:7
+    container_name: redis_server
+    restart: always
+    ports:
+      - "6379:6379"
     volumes:
-      - .:/app
-    env_file:
-      - .env
-    depends_on:
-      - db
+      - redis_data:/data
+    command: redis-server --appendonly yes
 
   bot:
     build: .
@@ -35,6 +35,32 @@ services:
     depends_on:
       - db
     restart: always
+
+  celery_worker:
+    build: .
+    container_name: celery_worker
+    command: celery -A DlyaTebeBot worker -l info
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - web
+      - db
+
+  celery_beat:
+    build: .
+    container_name: celery_beat
+    command: celery -A DlyaTebeBot beat -l info
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - db
+      - web
 
   # viber_bot:
   #   build: .
@@ -62,3 +88,4 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:

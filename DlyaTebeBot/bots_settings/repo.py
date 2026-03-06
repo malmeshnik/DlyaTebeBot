@@ -51,6 +51,7 @@ class MessageRepo:
 
 
 class BroadCastMessageRepo:
+    @staticmethod
     def get_ready_messages(self) -> list[BroadcastMessage]:
         now = timezone.now()
         qs = BroadcastMessage.objects.filter(scheduled_at__lte=now, send=False)
