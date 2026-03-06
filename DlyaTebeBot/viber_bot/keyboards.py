@@ -127,7 +127,6 @@ def main_menu(user_id):
         ),
         create_menu_button("☎️ Зв'язатися з нами", "contact_us"),
         create_menu_button("📱 Instagram, TikTok", "social_media"),
-        create_menu_button("❌ Відписатися", "unsubscribe"),
     )
 
     kb.adjust(columns=3, rows=1, resize=False)

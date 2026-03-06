@@ -344,7 +344,7 @@ async def scheduler_messages():
 
     async with Bot(token=settings.BOT_TOKEN) as bot:
         for message in ready_messages:
-            message.send = True
+            message.send_in_tg = True
             await sync_to_async(message.save)()
 
             media_file = FSInputFile(message.image.path) if message.image else None

@@ -30,6 +30,8 @@ class ViberUser(models.Model):
         max_length=255, verbose_name="Токен для miniapp", unique=True, default=secrets.token_urlsafe
     )
 
+    is_subscribe = models.BooleanField(default=True, verbose_name="Підписаний")
+
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата створення")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата оновлення")
 

@@ -197,6 +197,17 @@ def handle_purchaces(viber_request: Any, viber: Optional[Any] = None) -> None:
     messages = service.handle_purchases(user_id)
     viber.send_messages(user_id, messages)
 
+@viber_handler(text="show_menu")
+def handle_show_menu(viber_request: Any, viber: Optional[Any] = None) -> None:
+    user_id = viber_request.sender.id
+    messages = service.handle_default(user_id)
+    viber.send_messages(user_id, messages)
+
+@viber_handler(text="unsubscribe")
+def handle_unsubscribe(viber_request: Any, viber: Optional[Any] = None) -> None:
+    user_id = viber_request.sender.id
+    messages = service.handle_unsubscribe(user_id)
+    viber.send_messages(user_id, messages)
 
 @viber_handler(match="startswith", text="details_")
 def handle_purchase_details(viber_request: Any, viber: Optional[Any] = None) -> None:

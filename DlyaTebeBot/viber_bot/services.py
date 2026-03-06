@@ -23,7 +23,7 @@ class ViberService:
 
     def handle_start(self, user_id: str, user_name: str) -> List[TextMessage]:
         user, created = self.repo.update_or_create(user_id, name=user_name)
-        text = self.msg_repo.get_text("start")
+        text = self.msg_repo.get_viber_text("start")
         ViberMessageRepo.create(user=user, text=text, is_bot=True)
 
         if created:
@@ -57,6 +57,27 @@ class ViberService:
                 text=text,
                 keyboard=main_menu(user_id),
                 min_api_version=6,
+            )
+        ]
+
+    def handle_default(self, user_id: str) -> List[TextMessage]:
+        text = self.msg_repo.get_text("contact_received")
+        ViberMessageRepo.create(user=user, text=text, is_bot=True)
+        return [
+            TextMessage(
+                text=text,
+                keyboard=main_menu(user_id),
+                min_api_version=6,
+            )
+        ]
+
+    def handle_unsubscribe(self, user_id: str) -> List[TextMessage]:
+        self.repo.unsubscribe(user_id)
+        return [
+            TextMessage(
+                text="Ви успішно відписалися від розсилки.",
+                min_api_version=6,
+                keyboard=main_menu(user_id),
             )
         ]
 

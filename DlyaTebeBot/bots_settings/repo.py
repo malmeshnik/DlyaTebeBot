@@ -51,11 +51,15 @@ class MessageRepo:
 
 
 class BroadCastMessageRepo:
-    @staticmethod
     def get_ready_messages(self) -> list[BroadcastMessage]:
         now = timezone.now()
-        qs = BroadcastMessage.objects.filter(scheduled_at__lte=now, send=False)
+        qs = BroadcastMessage.objects.filter(scheduled_at__lte=now, send_in_tg=False)
         return list(qs)
 
     async def aget_ready_messages(self) -> list[BroadcastMessage]:
         return await sync_to_async(self.get_ready_messages)()
+
+    def get_viber_ready_messages(self) -> list[BroadcastMessage]:
+        now = timezone.now()
+        qs = BroadcastMessage.objects.filter(scheduled_at__lte=now, send_in_viber=False)
+        return list(qs)

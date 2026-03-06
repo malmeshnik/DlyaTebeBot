@@ -33,6 +33,15 @@ class ViberUserRepo:
 
         return user
 
+    @staticmethod
+    def unsubscribe(user_id):
+        user = ViberUser.objects.filter(viber_id=user_id).first()
+        user.is_subscribe = False
+        user.save()
+
+        return user
+
+
 
 class ViberMessageRepo:
     @staticmethod
@@ -51,7 +60,7 @@ class ViberMessageRepo:
 
         user_ids = list(
             ViberMessage.objects
-            .filter(created_at__gte=since, is_bot=False)
+            .filter(created_at__gte=since, is_bot=False, user__is_subscribe=True)
             .order_by()
             .values_list("user__viber_id", flat=True)
             .distinct()

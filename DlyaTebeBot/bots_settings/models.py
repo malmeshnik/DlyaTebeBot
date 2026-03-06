@@ -100,7 +100,8 @@ class BroadcastMessage(Message):
         null=True,
         help_text="Якщо не вказати буде відправлено відразу",
     )
-    send = models.BooleanField(default=False, verbose_name="Відправлено")
+    send_in_tg = models.BooleanField(default=False, verbose_name="Відправлено в Telegram")
+    send_in_viber = models.BooleanField(default=False, verbose_name="Відправлено в Viber")
 
     def __str__(self):
         return self.name

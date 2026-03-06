@@ -21,11 +21,10 @@ def broadcast(text: str, image_url: str | None = None):
     }
 
     unsubscribe_text = (
-        '\n\nНе бажаєте отримувати такі повідомлення? '
+        'Не бажаєте отримувати такі повідомлення? '
         'Натисніть кнопку "❌ Відписатися".'
     )
 
-    full_text = text + unsubscribe_text
 
     user_ids = list(ViberMessageRepo.get_user_ids_less_24())
 
@@ -36,7 +35,7 @@ def broadcast(text: str, image_url: str | None = None):
             builder = (
                 BroadcastCardBuilder()
                 .add_image(image_url)
-                .add_text(full_text)
+                .add_text(text, rows=3)
                 .add_unsubscribe_button()
                 .add_menu_button()
             )
@@ -52,7 +51,8 @@ def broadcast(text: str, image_url: str | None = None):
 
             builder = (
                 BroadcastCardBuilder()
-                .add_text(text=full_text, rows=5)
+                .add_text(text, rows=3)
+                .add_text(unsubscribe_text, rows=2)
                 .add_unsubscribe_button()
                 .add_menu_button()
             )

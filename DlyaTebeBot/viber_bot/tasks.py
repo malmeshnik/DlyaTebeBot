@@ -12,18 +12,18 @@ from bots_settings.repo import PromoCampaignRepo, MessageRepo, BroadCastMessageR
 def check_and_send_promo_task():
     today = timezone.localdate()
 
-    promo_campaigns = PromoCampaignRepo.get_active_campaigns()
+    promo_campaigns = PromoCampaignRepo().get_active_campaigns()
 
     for promo in promo_campaigns:
         start = promo.start_date
         end = promo.end_date
 
         if start == today:
-            msg = MessageRepo.get_message_by_name("start_promo")
+            msg = MessageRepo().get_message_by_name("start_promo")
         elif promo.end_date == today:
-            msg = MessageRepo.get_message_by_name("end_promo")
+            msg = MessageRepo().get_message_by_name("end_promo")
         elif promo.end_date - timedelta(days=3) == today:
-            msg = MessageRepo.get_message_by_name("before_end_promo")
+            msg = MessageRepo().get_message_by_name("before_end_promo")
         else:
             continue
 
@@ -33,14 +33,14 @@ def check_and_send_promo_task():
 
 @shared_task
 def scheduler_messages_task():
-    ready_messages = BroadCastMessageRepo.get_ready_messages()
+    ready_messages = BroadCastMessageRepo().get_viber_ready_messages()
 
     for msg in ready_messages:
-        if msg.image.exists():
+        if msg.image:
             broadcast(msg.text, settings.DOMAIN + msg.image.url)
         
         else:
             broadcast(msg.text)
 
-        msg.send = True
-        msg.save()
+        msg.send_in_viber = True
+        msg.save() 
