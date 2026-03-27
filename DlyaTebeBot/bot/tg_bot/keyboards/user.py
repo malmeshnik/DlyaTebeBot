@@ -25,7 +25,7 @@ def main_menu_keyboard() -> ReplyKeyboardMarkup:
         InlineKeyboardButton(text="💳 Моя бонусна карта", callback_data="mu_bonus_card")
     )
     builder.add(
-        InlineKeyboardButton(text="🎁 Акції", switch_inline_query_current_chat="promo")
+        InlineKeyboardButton(text="🎁 Акції", callback_data="promo")
     )
     builder.add(
         InlineKeyboardButton(text="🛍️ Мої покупки", switch_inline_query_current_chat="my_purchaces")
@@ -54,4 +54,21 @@ def promo() -> InlineKeyboardMarkup:
 
     builder.adjust(1)
 
+    return builder.as_markup()
+
+def promo_keybord(promocampaigns) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+
+    for promo in promocampaigns:
+        builder.add(
+            InlineKeyboardButton(
+                text=promo.name,
+                callback_data=f"promo:{promo.id}"
+            )
+        )
+
+    builder.add(
+        InlineKeyboardButton(text="⬅️ Повернутися в меню", callback_data="main_menu")
+    )
+    builder.adjust(1)
     return builder.as_markup()

@@ -118,6 +118,8 @@ class ApiCRM:
     def __init__(self, phone: str, password: str, base_url: Optional[str] = None, timeout: int = 15):
         self.base_url = (base_url or settings.BASE_CRM_URL).rstrip("/") + "/"
         self.timeout = timeout
+        self.phone = phone
+        self.password = password
 
         self.session = requests.Session()
         self.session.headers.update({"Content-Type": "application/json"})
@@ -137,20 +139,29 @@ class ApiCRM:
         self.token = token
         self.session.headers.update({"Authorization": f"JWT {self.token}"})
 
-    def _get(self, path: str, params: dict | None = None):
-        resp = self.session.get(self.base_url + path.lstrip("/"), params=params, timeout=self.timeout)
+    def _request(self, method: str, path: str, **kwargs):
+        url = self.base_url + path.lstrip("/")
+
+        resp = self.session.request(method, url, timeout=self.timeout, **kwargs)
+
+        if resp.status_code == 401:
+            logger.warning("JWT expired, refreshing...")
+
+            self._auth(self.phone, self.password)
+
+            resp = self.session.request(method, url, timeout=self.timeout, **kwargs)
+
         self._raise_for_status(resp)
         return resp
+
+    def _get(self, path: str, params: dict | None = None):
+        return self._request("GET", path, params=params)
 
     def _post(self, path: str, json: dict | None = None):
-        resp = self.session.post(self.base_url + path.lstrip("/"), json=json, timeout=self.timeout)
-        self._raise_for_status(resp)
-        return resp
+        return self._request("POST", path, json=json)
 
     def _put(self, path: str, json: dict | None = None):
-        resp = self.session.put(self.base_url + path.lstrip("/"), json=json, timeout=self.timeout)
-        self._raise_for_status(resp)
-        return resp
+        return self._request("PUT", path, json=json)
 
     @staticmethod
     def _raise_for_status(resp: requests.Response) -> None:

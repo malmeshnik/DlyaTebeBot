@@ -19,7 +19,7 @@ from django.conf import settings
 
 from bots_settings.repo import MessageRepo, PromoCampaignRepo
 from ..repo import TgUserRepo
-from ..keyboards.user import get_contact_keyboard, main_menu_keyboard, restart_menu_keyboard, promo as promo_kb
+from ..keyboards.user import get_contact_keyboard, main_menu_keyboard, restart_menu_keyboard, promo_keybord, promo as promo_kb
 from ..states import UserStates
 from ..utils import send_message, edit_message, edit_message_by_id, generate_qr_code
 from ...api import ApiCRM
@@ -192,74 +192,50 @@ async def social_media_message(query: CallbackQuery) -> None:
     )
 
 
-@router.inline_query(F.query.startswith("promo"))
-async def promo(query: InlineQuery):
-    results = [
-        InlineQueryResultArticle(
-            id="promo",
-            title="🎁 АКЦІЇ",
-            description="Для повного перегляду акції виберіть її",
-            thumbnail_url="https://upload.wikimedia.org/wikipedia/commons/5/59/Empty.png",
-            input_message_content=InputTextMessageContent(
-                message_text="main_menu",
-            ),
-        ),
-    ]
+@router.callback_query(F.data == "promo")
+async def promo(query: CallbackQuery):
+    await query.answer()
     promocampaigns = await promo_repo.aget_active_campaigns()
     if not promocampaigns:
-        results = [
-            InlineQueryResultArticle(
-                id="a1",
-                title="🎁 АКЦІЇ",
-                description="Поки що немає активних акцій, як тільки вони з'являться ми вас сповістимо",
-                thumbnail_url="https://upload.wikimedia.org/wikipedia/commons/5/59/Empty.png",
-                input_message_content=InputTextMessageContent(
-                    message_text="main_menu",
-                ),
-            ),
-        ]
-
-    for promo in promocampaigns:
-        desc = (promo.description or "")[:512]
-
-        results.append(
-            InlineQueryResultArticle(
-                id=f"promo-{promo.id}",
-                thumbnail_url=promo.image_url,
-                title=promo.name,
-                description=desc,
-                input_message_content=InputTextMessageContent(
-                    message_text=f"promo:{promo.id}",
-                ),
-            )
+        await edit_message(
+            message=query.message, 
+            message_name="no_promo", 
+            user_repo=tg_user_repo, 
+            keyboard=main_menu_keyboard()
         )
+        return
 
-    await query.answer(results=results, cache_time=1, is_personal=True)
+    await edit_message(
+        message=query.message,
+        message_name="promo",
+        user_repo=tg_user_repo,
+        keyboard=promo_keybord(promocampaigns)
+    )
 
 
-@router.message(F.text.startswith("promo:"))
-async def view_promo(message: Message, bot: Bot) -> None:
-    await message.delete()
-    try:
-        user_id = message.chat.id
-        main_message_id = await tg_user_repo.get_main_message_id(user_id)
-        await bot.delete_message(user_id, main_message_id)
-    except:
-        pass
+@router.callback_query(F.data.startswith("promo:"))
+async def view_promo(query: CallbackQuery) -> None:
+    await query.answer()
 
-    keyboard = promo_kb()
-    pk = message.text.split(":")[1]
+    keyboard = promo_keybord([])
+    pk = query.data.split(":")[1]
     promocampaign = await promo_repo.aget_promo(pk)
     message_text = f"<b>{promocampaign.name}</b>\n\n{promocampaign.description}"
 
     if promocampaign.image:
+        await query.message.delete()
         photo = FSInputFile(promocampaign.image.path)
-        await message.answer_photo(
+        await query.message.answer_photo(
             photo=photo, caption=message_text, reply_markup=keyboard
         )
         return
 
-    await message.answer(message_text, reply_markup=keyboard)
+    await edit_message(
+        message=query.message,
+        message_text=message_text,
+        user_repo=tg_user_repo,
+        keyboard=keyboard
+    )
 
 
 @router.inline_query(F.query.startswith("my_purchaces"))
