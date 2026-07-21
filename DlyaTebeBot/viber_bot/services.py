@@ -23,10 +23,11 @@ class ViberService:
 
     def handle_start(self, user_id: str, user_name: str) -> List[TextMessage]:
         user, created = self.repo.update_or_create(user_id, name=user_name)
-        text = self.msg_repo.get_viber_text("start")
-        ViberMessageRepo.create(user=user, text=text, is_bot=True)
 
         if created:
+            text = self.msg_repo.get_viber_text("start")
+            ViberMessageRepo.create(user=user, text=text, is_bot=True)
+
             set_state(user_id, "contact")
             return [
                 TextMessage(
@@ -36,6 +37,9 @@ class ViberService:
                 )
             ]
         else:
+            text = self.msg_repo.get_viber_text("contact_received")
+            ViberMessageRepo.create(user=user, text=text, is_bot=True)
+
             clear_state(user_id)
             return [
                 TextMessage(
@@ -50,7 +54,7 @@ class ViberService:
     ) -> List[TextMessage]:
         user, _ = self.repo.update_or_create(user_id, name=user_name, phone_number=phone)
         clear_state(user_id)
-        text = self.msg_repo.get_text("contact_received")
+        text = self.msg_repo.get_viber_text("contact_received")
         ViberMessageRepo.create(user=user, text=text, is_bot=True)
         return [
             TextMessage(
@@ -61,7 +65,7 @@ class ViberService:
         ]
 
     def handle_default(self, user_id: str) -> List[TextMessage]:
-        text = self.msg_repo.get_text("contact_received")
+        text = self.msg_repo.get_viber_text("contact_received")
         ViberMessageRepo.create(user=user, text=text, is_bot=True)
         return [
             TextMessage(
@@ -224,7 +228,7 @@ class ViberService:
     def handle_contact_us(self, user_id: str) -> List[TextMessage]:
         return [
             TextMessage(
-                text=self.msg_repo.get_text("contact_request"),
+                text=self.msg_repo.get_viber_text("contact_request"),
                 keyboard=main_menu(user_id),
                 min_api_version=6,
             )
@@ -233,6 +237,7 @@ class ViberService:
     def handle_default(self, user_id: Optional[str] = None) -> List[TextMessage]:
         text = "Головне меню"
         if user_id:
+            clear_state(user_id)
             user, _ = self.repo.update_or_create(user_id)
             ViberMessageRepo.create(user=user, text=text, is_bot=True)
         return [

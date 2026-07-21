@@ -142,5 +142,5 @@ def contact():
             action_type="share-phone",
         )
     )
-    kb.resize_buttons(columns=3, rows=1)
+    kb.resize_buttons(columns=6, rows=1)
     return kb.to_dict()

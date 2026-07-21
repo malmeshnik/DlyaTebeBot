@@ -13,7 +13,7 @@ from bot.api import ApiCRM
 from bots_settings.repo import PromoCampaignRepo, MessageRepo
 from .services import ViberService
 from .repo import ViberUserRepo, ViberMessageRepo
-from .fsm import get_state
+from .fsm import get_state, clear_state
 
 
 
@@ -118,12 +118,31 @@ def hello(viber_request: Any, viber: Optional[Any] = None) -> None:
     set_state(user_id, "contact")
     messages = [
         TextMessage(
-            text=msg_repo.get_text("start"),
+            text=msg_repo.get_viber_text("start"),
             keyboard=contact(),
             min_api_version=6,
         )
     ]
     viber.send_messages(user_id, messages)
+
+# @viber_handler()
+# def handle_contact_global(viber_request, viber=None):
+#     logger.info(f"Handling contact_global for user_id={viber_request.sender.id}")
+#     if not isinstance(viber_request.message, ContactMessage):
+#         return
+
+#     user_id = viber_request.sender.id
+#     clear_state(user_id)
+
+#     phone = viber_request.message.contact.phone_number
+
+#     messages = service.handle_contact(
+#         user_id,
+#         viber_request.sender.name,
+#         phone
+#     )
+
+#     viber.send_messages(user_id, messages)
 
 
 @viber_handler(text="__CHECK_PRICE__")
@@ -135,6 +154,8 @@ def check_price(viber_request: Any, viber: Optional[Any] = None) -> None:
 
 @viber_handler(state="contact")
 def handle_contact(viber_request: Any, viber: Optional[Any] = None) -> None:
+    logger.info(f"Handling contact for user_id={viber_request.sender.id}")
+    
     user_id = viber_request.sender.id
     phone = ""
     if isinstance(viber_request.message, ContactMessage):
@@ -143,9 +164,10 @@ def handle_contact(viber_request: Any, viber: Optional[Any] = None) -> None:
         phone = viber_request.message.text
     else:
         from .keyboards import contact
+        set_state(user_id, "contact")
         messages = [
             TextMessage(
-                text=msg_repo.get_text("start"),
+                text=msg_repo.get_viber_text("start"),
                 keyboard=contact(),
                 min_api_version=6,
             )
@@ -229,4 +251,5 @@ def handle_promo_details(viber_request: Any, viber: Optional[Any] = None) -> Non
 def answer_to_message(viber_request: Any, viber: Optional[Any] = None) -> None:
     user_id = viber_request.sender.id
     messages = service.handle_default(user_id)
+    logger.info(f"OUTGOING MESSAGES: {messages}")
     viber.send_messages(user_id, messages)

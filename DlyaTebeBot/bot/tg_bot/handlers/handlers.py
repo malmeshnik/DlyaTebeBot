@@ -59,7 +59,10 @@ async def start(message: Message, state: FSMContext) -> None:
 @router.message(UserStates.contact)
 async def handle_contact(message: Message, bot: Bot, state: FSMContext) -> None:
     await message.delete()
-    await bot.delete_message(message.chat.id, message.message_id - 1)
+    try:
+        await bot.delete_message(message.chat.id, message.message_id - 1)
+    except TelegramBadRequest:
+        pass
 
     msg = await msg_repo.aget_message_by_name("contact_received")
 
