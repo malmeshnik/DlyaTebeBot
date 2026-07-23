@@ -1,5 +1,6 @@
 from typing import List, Optional, Any
 from dataclasses import dataclass
+import re
 
 from django.conf import settings
 from viberbot.api.messages import TextMessage, PictureMessage, RichMediaMessage
@@ -21,13 +22,26 @@ class ViberService:
     crm_client: ApiCRM
     msg_repo: MessageRepo
 
-    def handle_start(self, user_id: str, user_name: str, context: str = "") -> List[TextMessage]:
+    def handle_start(self, user_id: str, user_name: str, context: str = "") -> List[Any]:
         user, created = self.repo.update_or_create(user_id, name=user_name)
 
         if context:
-            prize_messages = self._handle_start_context(user, user_id, context)
-            if prize_messages:
-                return prize_messages
+            if user.phone_number:
+                prize_messages = self._handle_start_context(user, user_id, context)
+                if prize_messages:
+                    return prize_messages
+            else:
+                # Зберігаємо context до завершення обов'язкового збору номера.
+                set_state(user_id, f"contact:{context}")
+                text = self.msg_repo.get_viber_text("start")
+                ViberMessageRepo.create(user=user, text=text, is_bot=True)
+                return [
+                    TextMessage(
+                        text=text,
+                        keyboard=contact(),
+                        min_api_version=6,
+                    )
+                ]
             # якщо context прийшов, але спін не знайдено — падаємо у звичайну гілку нижче
 
         if created:
@@ -55,19 +69,49 @@ class ViberService:
                 )
             ]
 
-    def _handle_start_context(self, user, user_id: str, context: str) -> Optional[List[TextMessage]]:
-        from bot.models import WheelSpin  # та сама модель, що й для Telegram
+    def _handle_start_context(self, user, user_id: str, context: str) -> Optional[List[Any]]:
+        from miniapp.models import WheelSpin  # та сама модель, що й для Telegram
 
         spin = (
             WheelSpin.objects.filter(session_key=context).first()
             or WheelSpin.objects.filter(code=context).first()
         )
-
         if not spin:
             return None
 
-        text = f"🎉 Ваш приз: {spin.prize.name}\nКод: {spin.code}"
+        if WheelSpin.objects.filter(viber_user=user).exists():
+            return [
+                TextMessage(
+                    text="Ви вже отримали свій приз!",
+                    keyboard=main_menu(user_id),
+                    min_api_version=6,
+                )
+            ]
+
+        if spin.viber_user_id != user.id:
+            spin.viber_user = user
+            spin.save(update_fields=["viber_user"])
+        
+
+        prize = spin.prize
+
+        text = prize.message_text.format(prize_name=prize.name)
+        text = re.sub(r"<br\s*/?>", "\n", text, flags=re.IGNORECASE)
+        text = re.sub(r"<.*?>", "", text)
+
         ViberMessageRepo.create(user=user, text=text, is_bot=True)
+        photo_url = settings.VIBER_WEBHOOK_BASE_URL + prize.win_image.url if prize.win_image else None
+        print(f"Prize image URL: {photo_url}")  # Додано для відлагодження
+
+        if photo_url:
+            return [
+                PictureMessage(
+                    text=text,
+                    media=photo_url,
+                    keyboard=main_menu(user_id),
+                    min_api_version=6,
+                )
+            ]
 
         return [
             TextMessage(
@@ -79,18 +123,27 @@ class ViberService:
 
     def handle_contact(
         self, user_id: str, user_name: str, phone: str
-    ) -> List[TextMessage]:
+    ) -> List[Any]:
+        pending_state = get_state(user_id)
         user, _ = self.repo.update_or_create(user_id, name=user_name, phone_number=phone)
         clear_state(user_id)
         text = self.msg_repo.get_viber_text("contact_received")
         ViberMessageRepo.create(user=user, text=text, is_bot=True)
-        return [
+        messages = [
             TextMessage(
                 text=text,
                 keyboard=main_menu(user_id),
                 min_api_version=6,
             )
         ]
+
+        if isinstance(pending_state, str) and pending_state.startswith("contact:"):
+            context = pending_state.removeprefix("contact:")
+            prize_messages = self._handle_start_context(user, user_id, context)
+            if prize_messages:
+                messages.extend(prize_messages)
+
+        return messages
 
     def handle_default(self, user_id: str) -> List[TextMessage]:
         text = self.msg_repo.get_viber_text("contact_received")

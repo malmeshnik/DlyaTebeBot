@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import './BonusWheel.css';
+import styles from './BonusWheel.module.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -150,7 +150,7 @@ const BonusWheel = () => {
 
       // Сегмент (div з clip-path)
       const seg = document.createElement('div');
-      seg.className = 'segment';
+      seg.className = styles.segment;
       seg.style.clipPath = `path("${d.replace(/\s+/g, ' ')}")`;
       seg.style.background = createSegmentGradient(prize.color);
       seg.style.filter = 'drop-shadow(0 5px 12px rgba(60,40,30,0.16))';
@@ -247,7 +247,7 @@ const BonusWheel = () => {
       for (let i = 0; i < 32; i++) {
         const [x, y] = polar(298, (i / 32) * 360);
         const l = document.createElement('div');
-        l.className = 'light';
+        l.className = styles.light;
         l.style.left = `${x}px`;
         l.style.top = `${y}px`;
         l.style.animationDelay = `${i * 0.06}s`;
@@ -258,8 +258,8 @@ const BonusWheel = () => {
     // Показуємо сцену лише після того, як браузер порахував фінальний
     // layout — прибирає "битий" перший кадр без підписів на секторах
     requestAnimationFrame(() => {
-      void stageRef.current?.offsetHeight;
-      requestAnimationFrame(() => stageRef.current?.classList.add('ready'));
+      void stageRef.current?.offsetHeight; 
+      requestAnimationFrame(() => stageRef.current?.classList.add(styles.ready));
     });
   };
 
@@ -409,11 +409,11 @@ const BonusWheel = () => {
 
     if (wrRef.current) {
       wrRef.current.style.setProperty('--rot', `${newRotation}deg`);
-      wrRef.current.classList.add('spinning');
+      wrRef.current.classList.add(styles.spinning);
     }
 
     setTimeout(() => {
-      wrRef.current?.classList.remove('spinning');
+      wrRef.current?.classList.remove(styles.spinning);
       if (wrRef.current) {
         wrRef.current.style.transform = `rotate(${newRotation}deg)`;
       }
@@ -438,19 +438,19 @@ const BonusWheel = () => {
 
     // Кришка злітає
     if (capRef.current) {
-      capRef.current.style.animation = 'capFly 0.95s ease-out forwards';
+      capRef.current.classList.add(styles.capFlying);
     }
 
     setTimeout(() => {
       if (dropRef.current) {
-        dropRef.current.style.animation = 'dropFall 1.9s ease-in forwards';
+        dropRef.current.classList.add(styles.dropFalling);
       }
 
       // Змивання напису й поява тексту в краплі
       if (winLabel && dropRef.current) {
         syncTextWipe(winLabel, () => {
           const t = document.createElement('div');
-          t.className = 'drop-text';
+          t.className = styles.dropText;
           t.textContent = prize;
           dropRef.current?.appendChild(t);
         });
@@ -462,10 +462,10 @@ const BonusWheel = () => {
         }
 
         // Флакон "заряджається" світінням
-        bottleRef.current?.classList.add('charging');
+          bottleRef.current?.classList.add(styles.charging);
 
         setTimeout(() => {
-          bottleRef.current?.classList.remove('charging');
+          bottleRef.current?.classList.remove(styles.charging);
 
           // Збільшення флакону
           if (bottleRef.current) {
@@ -544,17 +544,17 @@ const BonusWheel = () => {
 
     // Спалах екрану
     const flash = document.createElement('div');
-    flash.className = 'screen-flash';
+    flash.className = styles.screenFlash;
     document.body.appendChild(flash);
     setTimeout(() => flash.remove(), 600);
 
     // Тремтіння
-    containerRef.current?.classList.add('shake');
-    setTimeout(() => containerRef.current?.classList.remove('shake'), 450);
+    containerRef.current?.classList.add(styles.shake);
+    setTimeout(() => containerRef.current?.classList.remove(styles.shake), 450);
 
     // Ударна хвиля
     const shock = document.createElement('div');
-    shock.className = 'shockwave-ring';
+    shock.className = styles.shockwaveRing;
     cont.appendChild(shock);
     setTimeout(() => shock.remove(), 900);
 
@@ -576,7 +576,8 @@ const BonusWheel = () => {
       sh.style.setProperty('--x', `${Math.cos(ang) * dist}px`);
       sh.style.setProperty('--y', `${Math.sin(ang) * dist}px`);
       sh.style.setProperty('--r', `${Math.random() * 720 - 360}deg`);
-      sh.style.animation = 'explode 1.2s ease-out forwards';
+      sh.className = styles.explosion;
+      sh.style.animationDuration = '1.2s';
 
       cont.appendChild(sh);
       setTimeout(() => sh.remove(), 1200);
@@ -621,7 +622,8 @@ const BonusWheel = () => {
         sm.style.setProperty('--dy', (-driftUp) + 'px');
         sm.style.setProperty('--rz', rot + 'deg');
         sm.style.setProperty('--sc', scaleEnd);
-        sm.style.animation = `smokeRise ${dur}ms ease-out forwards`;
+        sm.className = styles.smokeRising;
+        sm.style.animationDuration = `${dur}ms`;
 
         cont.appendChild(sm);
         setTimeout(() => sm.remove(), dur + 60);
@@ -631,21 +633,33 @@ const BonusWheel = () => {
 
   const reset = () => {
     if (capRef.current) {
-      capRef.current.style.animation = '';
+      capRef.current.classList.remove(styles.capFlying);
       capRef.current.style.opacity = '1';
     }
     if (dropRef.current) {
-      dropRef.current.style.animation = '';
+      dropRef.current.classList.remove(styles.dropFalling);
       dropRef.current.style.opacity = '1';
-      dropRef.current.innerHTML = '<div class="drop-shape"></div><div class="drop-hi"></div><div class="drop-hi2"></div>';
+      dropRef.current.innerHTML = `<div class="${styles.dropShape}"></div><div class="${styles.dropHi}"></div><div class="${styles.dropHi2}"></div>`;
     }
     if (bottleRef.current) {
       bottleRef.current.style.transition = '';
       bottleRef.current.style.transform = '';
       bottleRef.current.style.filter = '';
       bottleRef.current.style.opacity = '1';
-      bottleRef.current.classList.remove('charging');
+      bottleRef.current.classList.remove(styles.charging);
     }
+  };
+
+  const getViberBotUrl = (context) => {
+    const configuredUri = (import.meta.env.VITE_VIBER_CHAT_URI || '').trim();
+    const baseUrl = configuredUri.startsWith('viber://pa?')
+      ? configuredUri
+      : `viber://pa?chatURI=${encodeURIComponent(configuredUri)}`;
+
+    if (!context) return baseUrl;
+
+    const separator = baseUrl.includes('?') ? '&' : '?';
+    return `${baseUrl}${separator}context=${encodeURIComponent(context)}`;
   };
 
   const goToBot = (code) => {
@@ -653,8 +667,7 @@ const BonusWheel = () => {
       const botUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME || 'DLYA_TEBE_perfumes_bot';
       window.location.href = `https://t.me/${botUsername}?start=${code}`;
     } else {
-      const chatURI = import.meta.env.VITE_VIBER_CHAT_URI || '';
-      window.location.href = `viber://pa?chatURI=${chatURI}&context=${code}`;
+      window.location.href = getViberBotUrl(code);
     }
   };
 
@@ -665,8 +678,7 @@ const BonusWheel = () => {
       const botUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME || 'DLYA_TEBE_perfumes_bot';
       window.location.href = `https://t.me/${botUsername}`;
     } else {
-      const chatURI = import.meta.env.VITE_VIBER_CHAT_URI || '';
-      window.location.href = `viber://pa?chatURI=${chatURI}`;
+      window.location.href = getViberBotUrl();
     }
   };
 
@@ -690,19 +702,19 @@ const BonusWheel = () => {
 
   if (alreadySpun && previousSpin) {
     return (
-      <div className="page">
-        <header className="site-header">
-          <div className="site-logo">Dlya Tebe</div>
+        <div className={styles.page}>
+          <header className={styles.siteHeader}>
+            <div className={styles.siteLogo}>Dlya Tebe</div>
         </header>
 
-        <div className="already-screen show">
+        <div className={`${styles.alreadyScreen} ${styles.show}`}>
           {previousIsLose ? (
             <>
               <h2>Цього разу не пощастило</h2>
-              <p className="a-code">
+              <p className={styles.aCode}>
                 Не засмучуйтесь — у нашому боті регулярно проходять акції з безкоштовними призами. Переходьте, щоб не пропустити наступну!
               </p>
-              <button className="btn" onClick={goToBotPlain}>
+              <button className={styles.btn} onClick={goToBotPlain}>
                 Перейти в бот
               </button>
             </>
@@ -710,9 +722,9 @@ const BonusWheel = () => {
             <>
               <h2>Ваш подарунок вже чекає на вас</h2>
               <p>Ви отримали:</p>
-              <div className="a-prize">{previousSpin.prize}</div>
-              <div className="a-code">Код: <b>{previousSpin.code}</b></div>
-              <button className="btn" onClick={() => goToBot(previousSpin.code)}>
+              <div className={styles.aPrize}>{previousSpin.prize}</div>
+              <div className={styles.aCode}>Код: <b>{previousSpin.code}</b></div>
+              <button className={styles.btn} onClick={() => goToBot(previousSpin.code)}>
                 Перейти в бот за призом
               </button>
             </>
@@ -729,58 +741,58 @@ const BonusWheel = () => {
     : false;
 
   return (
-    <div className="page">
-      <header className="site-header">
-        <div className="site-logo">Dlya Tebe</div>
+    <div className={styles.page}>
+      <header className={styles.siteHeader}>
+        <div className={styles.siteLogo}>Dlya Tebe</div>
       </header>
 
-      <section className="hero">
+      <section className={styles.hero}>
         <h1>Крутіть колесо — отримуйте подарунок</h1>
       </section>
 
-      <section className="wheel-section">
-        <div className="stage" ref={stageRef}>
-          <div className="container" id="container" ref={containerRef}>
-            <div className="wheel-wrapper">
+      <section className={styles.wheelSection}>
+        <div className={styles.stage} ref={stageRef}>
+          <div className={styles.container} ref={containerRef}>
+            <div className={styles.wheelWrapper}>
               {/* Фонові плями */}
-              <div className="blobs">
-                <div className="blob" style={{ width: '220px', height: '220px', top: '20px', left: '60px', background: '#ff9ec4', filter: 'blur(60px)' }}></div>
-                <div className="blob" style={{ width: '200px', height: '200px', top: '0', left: '300px', background: '#ffb27a', filter: 'blur(60px)' }}></div>
-                <div className="blob" style={{ width: '220px', height: '220px', top: '230px', left: '400px', background: '#ffd76a', filter: 'blur(60px)' }}></div>
-                <div className="blob" style={{ width: '200px', height: '200px', top: '420px', left: '300px', background: '#9de8a8', filter: 'blur(60px)' }}></div>
-                <div className="blob" style={{ width: '220px', height: '220px', top: '430px', left: '80px', background: '#7fd6c7', filter: 'blur(60px)' }}></div>
-                <div className="blob" style={{ width: '200px', height: '200px', top: '250px', left: '-20px', background: '#8fb8ec', filter: 'blur(60px)' }}></div>
-                <div className="blob" style={{ width: '200px', height: '200px', top: '60px', left: '170px', background: '#c79bec', filter: 'blur(60px)' }}></div>
+              <div className={styles.blobs}>
+                <div className={styles.blob} style={{ width: '220px', height: '220px', top: '20px', left: '60px', background: '#ff9ec4', filter: 'blur(60px)' }}></div>
+                <div className={styles.blob} style={{ width: '200px', height: '200px', top: '0', left: '300px', background: '#ffb27a', filter: 'blur(60px)' }}></div>
+                <div className={styles.blob} style={{ width: '220px', height: '220px', top: '230px', left: '400px', background: '#ffd76a', filter: 'blur(60px)' }}></div>
+                <div className={styles.blob} style={{ width: '200px', height: '200px', top: '420px', left: '300px', background: '#9de8a8', filter: 'blur(60px)' }}></div>
+                <div className={styles.blob} style={{ width: '220px', height: '220px', top: '430px', left: '80px', background: '#7fd6c7', filter: 'blur(60px)' }}></div>
+                <div className={styles.blob} style={{ width: '200px', height: '200px', top: '250px', left: '-20px', background: '#8fb8ec', filter: 'blur(60px)' }}></div>
+                <div className={styles.blob} style={{ width: '200px', height: '200px', top: '60px', left: '170px', background: '#c79bec', filter: 'blur(60px)' }}></div>
               </div>
 
               {/* Колесо */}
-              <div className="wheel-rotate" ref={wrRef}>
-                <svg id="wsvg" viewBox="0 0 560 560" ref={svgRef}></svg>
+              <div className={styles.wheelRotate} ref={wrRef}>
+                <svg className={styles.wsvg} viewBox="0 0 560 560" ref={svgRef}></svg>
               </div>
 
               {/* Кільце з лампочками */}
-              <div className="outer-ring" ref={ringRef}></div>
+              <div className={styles.outerRing} ref={ringRef}></div>
 
               {/* Вказівник */}
-              <div className="pointer"></div>
+              <div className={styles.pointer}></div>
 
               {/* Краплина */}
-              <div className="drop" ref={dropRef}>
-                <div className="drop-shape"></div>
-                <div className="drop-hi"></div>
-                <div className="drop-hi2"></div>
+              <div className={styles.drop} ref={dropRef}>
+                <div className={styles.dropShape}></div>
+                <div className={styles.dropHi}></div>
+                <div className={styles.dropHi2}></div>
               </div>
 
               {/* Флакон */}
-              <div className="bottle" ref={bottleRef}>
-                <div className="b-cap" ref={capRef}>
-                  <div className="b-ring"></div>
+              <div className={styles.bottle} ref={bottleRef}>
+                <div className={styles.bCap} ref={capRef}>
+                  <div className={styles.bRing}></div>
                 </div>
-                <div className="b-body">
-                  <div className="b-liquid"></div>
-                  <div className="b-shine"></div>
+                <div className={styles.bBody}>
+                  <div className={styles.bLiquid}></div>
+                  <div className={styles.bShine}></div>
                 </div>
-                <div className="pedestal"></div>
+                <div className={styles.pedestal}></div>
               </div>
             </div>
 
@@ -793,7 +805,7 @@ const BonusWheel = () => {
                 сусід .wheel-wrapper вона займає власний простір нижче й
                 узагалі не перетинається з цими шарами. */}
             <button
-              className="btn"
+              className={styles.btn}
               onClick={
                 hasSpun
                   ? () => (isLoseResult ? goToBotPlain() : goToBot(currentSpinResult?.code))
@@ -809,17 +821,17 @@ const BonusWheel = () => {
             </button>
           </div>
         </div>
-        <p className="trust-line">Виграш гарантований · 1 спін на людину</p>
+        <p className={styles.trustLine}>Виграш гарантований · 1 спін на людину</p>
       </section>
 
       {/* Модалка */}
       {modalShow && currentSpinResult && (
-        <div className={`modal show ${modalDark ? 'dark' : ''}`}>
-          <div className={`m-box ${modalMaterialize ? 'materialize' : ''}`}>
+          <div className={`${styles.modal} ${styles.show} ${modalDark ? styles.dark : ''}`}>
+            <div className={`${styles.mBox} ${modalMaterialize ? styles.materialize : ''}`}>
             {isLoseResult ? (
               <>
                 <h2>Цього разу не пощастило 😔</h2>
-                <p className="m-note">
+                <p className={styles.mNote}>
                   Але не сумуйте — у нашому боті регулярно проходять акції з безкоштовними призами. Переходьте в бот прямо зараз, щоб не пропустити наступну нагоду виграти!
                 </p>
                 <button onClick={() => { closeModal(); goToBotPlain(); }}>Перейти в бот</button>
@@ -828,8 +840,8 @@ const BonusWheel = () => {
               <>
                 <h2>Вітаємо! 🎉</h2>
                 <p>Ви виграли:</p>
-                <div className="m-prize">{currentSpinResult.prize_name}</div>
-                <p className="m-note">Натисніть кнопку нижче — у чаті бота одразу з'явиться все необхідне для отримання вашого призу.</p>
+                <div className={styles.mPrize}>{currentSpinResult.prize_name}</div>
+                <p className={styles.mNote}>Натисніть кнопку нижче — у чаті бота одразу з'явиться все необхідне для отримання вашого призу.</p>
                 <button onClick={() => { closeModal(); goToBot(currentSpinResult.code); }}>Забрати приз у боті</button>
               </>
             )}

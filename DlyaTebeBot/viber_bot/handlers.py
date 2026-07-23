@@ -174,8 +174,13 @@ def handle_request(viber_request: Any, viber: Optional[Any] = None) -> None:
                 else:  # exact
                     if h["text"] != action:
                         continue
-            if h["state"] and h["state"] != get_state(user_id):
-                continue
+            current_state = get_state(user_id)
+            if h["state"] and current_state != h["state"]:
+                if not (
+                    isinstance(current_state, str)
+                    and current_state.startswith(f"{h['state']}:")
+                ):
+                    continue
         h["func"](viber_request, viber)
         break
 
