@@ -1,0 +1,39 @@
+{% with id=widget.attrs.id %}
+<div class="color-radio-grid">
+  {% for group, options, index in widget.optgroups %}
+    {% for option in options %}
+    <label class="color-radio-option {% if option.selected %}selected{% endif %}" data-color-option>
+      <input type="radio" name="{{ widget.name }}" value="{{ option.value }}"{% if option.selected %} checked{% endif %}{% include "django/forms/widgets/attrs.html" %}>
+      <span class="color-preview" style="background-color: {{ option.color }};"></span>
+      <span class="color-label">{{ option.label }}</span>
+    </label>
+    {% endfor %}
+  {% endfor %}
+</div>
+
+<script>
+(function() {
+  document.addEventListener('DOMContentLoaded', function() {
+    const options = document.querySelectorAll('[data-color-option]');
+
+    options.forEach(function(label) {
+      label.addEventListener('click', function(e) {
+        // Прибираємо selected з усіх
+        options.forEach(function(opt) {
+          opt.classList.remove('selected');
+        });
+
+        // Додаємо selected до поточного
+        this.classList.add('selected');
+
+        // Відмічаємо radio
+        const radio = this.querySelector('input[type="radio"]');
+        if (radio) {
+          radio.checked = true;
+        }
+      });
+    });
+  });
+})();
+</script>
+{% endwith %}

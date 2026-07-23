@@ -15,16 +15,25 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
+from django.contrib.admin import sites
 from django.conf import settings
 from django.urls import path, include
 from django.conf.urls.static import static
 from rest_framework_simplejwt.views import TokenRefreshView
+from bot.admin_site import CustomAdminSite
+
+# Використовуємо custom admin site та переносимо реєстрації моделей з дефолтного сайту
+old_admin_site = admin.site
+custom_admin_site = CustomAdminSite()
+custom_admin_site._registry = old_admin_site._registry
+admin.site = custom_admin_site
+sites.site = custom_admin_site
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path("viber/", include("viber_bot.urls")),
     path("api/miniapp/", include("miniapp.urls")),
-    
+
     path("api/token/refresh/", TokenRefreshView.as_view()),
 ]
 

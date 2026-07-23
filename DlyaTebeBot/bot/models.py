@@ -57,6 +57,7 @@ class TgMessage(models.Model):
     caption = models.TextField(null=True, blank=True)
 
     is_bot = models.BooleanField(default=False)
+    is_read = models.BooleanField(default=False, verbose_name="Прочитано")
     is_edited = models.BooleanField(default=False)
     edit_date = models.DateTimeField(null=True, blank=True)
 

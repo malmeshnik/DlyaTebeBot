@@ -24,6 +24,14 @@ class TgUserRepo:
         return user, created
     
     @staticmethod
+    @sync_to_async
+    def aupdate_or_create_user(telegram_id: int, **kwargs) -> TgUser:
+        user, _ = TgUser.objects.update_or_create(
+            telegram_id=telegram_id, defaults=kwargs
+        )
+        return user
+    
+    @staticmethod
     def get(telegram_id: int, **kwargs) -> TgUser:
         try:
             return TgUser.objects.get(telegram_id=telegram_id, **kwargs)
@@ -69,6 +77,11 @@ class TgUserRepo:
     @staticmethod
     @sync_to_async
     def get_admins() -> list[TgUser]:
+        return list(TgUser.objects.filter(is_admin=True))
+
+    @staticmethod
+    @sync_to_async
+    def get_admin_users() -> list[TgUser]:
         return list(TgUser.objects.filter(is_admin=True))
 
     @staticmethod

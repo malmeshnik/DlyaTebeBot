@@ -13,13 +13,15 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.conf import settings
 from django.db.models import Case, When, Value, IntegerField, Prefetch
 from rest_framework.filters import SearchFilter, OrderingFilter
-from .models import Gender, Product, Brand, Banner, ProductVariant, Order
+from .models import Gender, Product, Brand, Banner, ProductVariant, Order, WheelPrize, WheelSpin
 from .serializers import (
     GenderSerializer,
     ProductSerializer,
     BrandSerializer,
     BannerSerializer,
-    OrderCreateSerializer
+    OrderCreateSerializer,
+    WheelPrizeSerializer,
+    WheelSpinSerializer
 )
 from .filters import ProductFilter
 from .telegram_auth import check_telegram_auth, check_viber_auth
@@ -211,11 +213,9 @@ def telegram_auth(request):
 
     user, _ = TgUserRepo.get_or_create(
         telegram_id=telegram_id,
-        defaults={
-            "username": user_data.get("username"),
-            "first_name": user_data.get("first_name"),
-            "last_name": user_data.get("last_name"),
-        }
+        username=user_data.get("username"),
+        first_name=user_data.get("first_name"),
+        last_name=user_data.get("last_name"),
     )
 
     refresh = RefreshToken()
@@ -269,3 +269,156 @@ def viber_auth(request):
             "viber_id": user.viber_id
         }
     })
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def wheel_prizes(request):
+    """Отримати список активних призів для колеса"""
+    prizes = WheelPrize.objects.filter(is_active=True).order_by('sort_order', 'id')
+    serializer = WheelPrizeSerializer(prizes, many=True)
+    return Response(serializer.data)
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def wheel_check_eligibility(request):
+    """Перевірити чи може користувач крутити колесо"""
+
+    # Для Telegram користувачів (авторизованих)
+    if isinstance(request.user, TgUser):
+        already_spun = WheelSpin.objects.filter(tg_user=request.user).exists()
+
+        if already_spun:
+            spin = WheelSpin.objects.filter(tg_user=request.user).first()
+            return Response({
+                "can_spin": False,
+                "already_spun": True,
+                "prize": spin.prize.name,
+                "code": spin.code
+            })
+
+        return Response({
+            "can_spin": True,
+            "already_spun": False
+        })
+
+    # Для анонімних користувачів (Viber/браузер)
+    # Перевіряємо по session_key або fingerprint з localStorage
+    session_key = request.COOKIES.get('wheel_session') or request.GET.get('session_key')
+
+    if session_key:
+        already_spun = WheelSpin.objects.filter(session_key=session_key).exists()
+
+        if already_spun:
+            spin = WheelSpin.objects.filter(session_key=session_key).first()
+            return Response({
+                "can_spin": False,
+                "already_spun": True,
+                "prize": spin.prize.name,
+                "code": spin.code
+            })
+
+    return Response({
+        "can_spin": True,
+        "already_spun": False
+    })
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+@throttle_classes([ScopedRateThrottle])
+def wheel_spin(request):
+    """Крутити колесо і отримати приз"""
+
+    request.throttle_scope = "wheel_spin"
+
+    # Отримуємо всі активні призи
+    prizes = list(WheelPrize.objects.filter(is_active=True))
+
+    if not prizes:
+        return Response(
+            {"error": "Немає доступних призів"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Для Telegram користувачів
+    if isinstance(request.user, TgUser):
+        # Перевіряємо чи вже крутив
+        if WheelSpin.objects.filter(tg_user=request.user).exists():
+            return Response(
+                {"error": "Ви вже крутили колесо"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Вибираємо приз на основі ймовірностей
+        selected_prize = _select_prize_by_probability(prizes)
+
+        # Створюємо запис про виграш
+        spin = WheelSpin.objects.create(
+            prize=selected_prize,
+            tg_user=request.user
+        )
+
+        if isinstance(request.user, TgUser):
+            spin.tg_user = request.user
+
+        serializer = WheelSpinSerializer(spin)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    # Для анонімних користувачів
+    session_key = request.COOKIES.get('wheel_session') or request.data.get('session_key')
+
+    if not session_key:
+        # Генеруємо новий session_key
+        import secrets
+        session_key = secrets.token_urlsafe(32)
+
+    # Перевіряємо чи вже крутив
+    if WheelSpin.objects.filter(session_key=session_key).exists():
+        return Response(
+            {"error": "Ви вже крутили колесо"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Вибираємо приз
+    selected_prize = _select_prize_by_probability(prizes)
+
+    # Створюємо запис
+    spin = WheelSpin.objects.create(
+        prize=selected_prize,
+        session_key=session_key
+    )
+
+    serializer = WheelSpinSerializer(spin)
+
+    response = Response(serializer.data, status=status.HTTP_201_CREATED)
+    response.set_cookie('wheel_session', session_key, max_age=31536000)  # 1 рік
+
+    return response
+
+
+def _select_prize_by_probability(prizes):
+    """Вибирає приз на основі ймовірностей"""
+    import random
+    from decimal import Decimal
+
+    # Нормалізуємо ймовірності
+    total_probability = sum(prize.probability for prize in prizes)
+
+    if total_probability == 0:
+        # Якщо всі ймовірності 0, вибираємо рандомно
+        return random.choice(prizes)
+
+    # Генеруємо випадкове число
+    rand = Decimal(str(random.uniform(0, float(total_probability))))
+
+    # Вибираємо приз
+    cumulative = Decimal('0')
+    for prize in prizes:
+        cumulative += prize.probability
+        if rand <= cumulative:
+            return prize
+
+    # Fallback на останній приз
+    return prizes[-1]

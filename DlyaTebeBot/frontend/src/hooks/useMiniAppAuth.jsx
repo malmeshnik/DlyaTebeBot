@@ -1,12 +1,14 @@
 import { useEffect } from "react";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+
 const useMiniAppAuth = (onDone) => {
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
 
     // TELEGRAM AUTH
     if (tg?.initData) {
-      fetch("/api/miniapp/telegram-auth/", {
+      fetch(`${API_BASE_URL}/api/miniapp/telegram-auth/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ initData: tg.initData }),
@@ -32,7 +34,7 @@ const useMiniAppAuth = (onDone) => {
     const miniapp_token = params.get("token");
 
     if (miniapp_token) {
-      fetch("/api/miniapp/viber-auth/", {
+      fetch(`${API_BASE_URL}/api/miniapp/viber-auth/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

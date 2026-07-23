@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Gender, Product, ProductImage, Banner, Brand, ProductVariant
+from .models import Gender, Product, ProductImage, Banner, Brand, ProductVariant, WheelPrize, WheelSpin
 
 
 class BannerSerializer(serializers.ModelSerializer):
@@ -80,3 +80,22 @@ class OrderCreateSerializer(serializers.Serializer):
         if value and not ProductVariant.objects.filter(id=value).exists():
             raise serializers.ValidationError("Product variant not found")
         return value
+
+
+class WheelPrizeSerializer(serializers.ModelSerializer):
+    """Серіалізатор для відображення призів колеса"""
+
+    class Meta:
+        model = WheelPrize
+        fields = ['id', 'name', 'color', 'lose', 'sort_order']
+
+
+class WheelSpinSerializer(serializers.ModelSerializer):
+    """Серіалізатор для історії прокрутів"""
+    prize_name = serializers.CharField(source='prize.name', read_only=True)
+    platform = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = WheelSpin
+        fields = ['id', 'code', 'prize_name', 'is_claimed', 'created_at', 'platform']
+        read_only_fields = ['code', 'created_at']

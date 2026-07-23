@@ -61,6 +61,7 @@ class ViberMessage(models.Model):
     media_url = models.TextField(blank=True, null=True)
     text = models.TextField(verbose_name="Текст", null=True, blank=True)
     is_bot = models.BooleanField(default=False, verbose_name="Від бота")
+    is_read = models.BooleanField(default=False, verbose_name="Прочитано")
     timestamp = models.BigIntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Створено")
 

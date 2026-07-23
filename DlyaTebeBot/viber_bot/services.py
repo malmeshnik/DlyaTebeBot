@@ -21,8 +21,14 @@ class ViberService:
     crm_client: ApiCRM
     msg_repo: MessageRepo
 
-    def handle_start(self, user_id: str, user_name: str) -> List[TextMessage]:
+    def handle_start(self, user_id: str, user_name: str, context: str = "") -> List[TextMessage]:
         user, created = self.repo.update_or_create(user_id, name=user_name)
+
+        if context:
+            prize_messages = self._handle_start_context(user, user_id, context)
+            if prize_messages:
+                return prize_messages
+            # якщо context прийшов, але спін не знайдено — падаємо у звичайну гілку нижче
 
         if created:
             text = self.msg_repo.get_viber_text("start")
@@ -48,6 +54,28 @@ class ViberService:
                     min_api_version=6,
                 )
             ]
+
+    def _handle_start_context(self, user, user_id: str, context: str) -> Optional[List[TextMessage]]:
+        from bot.models import WheelSpin  # та сама модель, що й для Telegram
+
+        spin = (
+            WheelSpin.objects.filter(session_key=context).first()
+            or WheelSpin.objects.filter(code=context).first()
+        )
+
+        if not spin:
+            return None
+
+        text = f"🎉 Ваш приз: {spin.prize.name}\nКод: {spin.code}"
+        ViberMessageRepo.create(user=user, text=text, is_bot=True)
+
+        return [
+            TextMessage(
+                text=text,
+                keyboard=main_menu(user_id),
+                min_api_version=6,
+            )
+        ]
 
     def handle_contact(
         self, user_id: str, user_name: str, phone: str

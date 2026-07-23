@@ -12,10 +12,11 @@ from aiogram.types import (
     InlineQueryResultArticle,
     FSInputFile,
 )
-from aiogram.filters.command import CommandStart
+from aiogram.filters.command import CommandStart, CommandObject
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
 from django.conf import settings
+from django.utils import timezone
 
 from bots_settings.repo import MessageRepo, PromoCampaignRepo
 from ..repo import TgUserRepo
@@ -23,6 +24,7 @@ from ..keyboards.user import get_contact_keyboard, main_menu_keyboard, restart_m
 from ..states import UserStates
 from ..utils import send_message, edit_message, edit_message_by_id, generate_qr_code
 from ...api import ApiCRM
+from miniapp.models import WheelSpin
 
 
 router = Router()
@@ -33,9 +35,30 @@ crm_client = ApiCRM(settings.PHONE_CRM_AUTH, settings.PASSWORD_CRM)
 
 
 @router.message(CommandStart())
-async def start(message: Message, state: FSMContext) -> None:
+async def start(message: Message, state: FSMContext, command: CommandObject) -> None:
     await message.delete()
     user = await tg_user_repo.get_user(message.from_user.id)
+
+    # Перевірка чи це код виграшу з колеса фортуни
+    if command.args and command.args.startswith('W'):
+        code = command.args
+
+        # Спочатку перевіряємо чи користувач зареєстрований
+        if not user or not user.phone_number:
+            await send_message(
+                message=message,
+                message_name="start",
+                user_repo=tg_user_repo,
+                keyboard=get_contact_keyboard(),
+            )
+            await state.set_state(UserStates.contact)
+            # Зберігаємо код для використання після реєстрації
+            await state.update_data(wheel_code=code)
+            return
+
+        # Обробка коду виграшу
+        await handle_wheel_prize(message, user, code)
+        return
 
     if not user:
         await send_message(
@@ -56,6 +79,54 @@ async def start(message: Message, state: FSMContext) -> None:
     )
 
 
+async def handle_wheel_prize(message: Message, user, code: str):
+    """Обробка коду виграшу з колеса фортуни"""
+    try:
+        spin = await WheelSpin.objects.select_related('prize').aget(code=code, is_claimed=False)
+
+        # Прив'язуємо виграш до користувача
+        spin.tg_user = user
+        spin.is_claimed = True
+        spin.claimed_at = timezone.now()
+        prize = spin.prize
+        await spin.asave()
+
+        if prize.win_image:
+            photo = FSInputFile(prize.win_image.path)
+            await message.answer_photo(
+                photo=photo,
+                caption=prize.message_text.format(prize_name=prize.name),
+                parse_mode="HTML",
+                reply_markup=main_menu_keyboard()
+            )
+        else:
+            await message.answer(
+                prize.message_text.format(prize_name=prize.name),
+                parse_mode="HTML",
+                reply_markup=main_menu_keyboard()
+            )
+
+
+        logger.info(f"User {user.telegram_id} claimed prize {spin.prize.name} with code {code}")
+
+    except WheelSpin.DoesNotExist:
+        await message.answer(
+            "❌ <b>Невірний або вже використаний код.</b>\n\n"
+            "Можливо, ви вже активували цей приз раніше, або код введено невірно.",
+            parse_mode="HTML",
+            reply_markup=main_menu_keyboard()
+        )
+        logger.warning(f"User {user.telegram_id if user else 'unknown'} tried invalid code: {code}")
+    except Exception as e:
+        logger.error(f"Error handling wheel prize: {e}")
+        await message.answer(
+            "❌ <b>Виникла помилка при активації призу.</b>\n\n"
+            "Будь ласка, спробуйте пізніше або зверніться до адміністратора.",
+            parse_mode="HTML",
+            reply_markup=main_menu_keyboard()
+        )
+
+
 @router.message(UserStates.contact)
 async def handle_contact(message: Message, bot: Bot, state: FSMContext) -> None:
     await message.delete()
@@ -74,7 +145,7 @@ async def handle_contact(message: Message, bot: Bot, state: FSMContext) -> None:
         logger.error(f"Error retrieving contact: {e}")
         phone_number = None
 
-    tg_user, created = await tg_user_repo.get_or_create_user(
+    tg_user, created = await tg_user_repo.aupdate_or_create_user(
         telegram_id=message.from_user.id,
         username=message.from_user.username,
         first_name=message.from_user.first_name,
@@ -84,6 +155,16 @@ async def handle_contact(message: Message, bot: Bot, state: FSMContext) -> None:
 
     if created:
         logger.info(f"New user created: {tg_user.first_name}")
+
+    # Перевірка чи є збережений код виграшу
+    data = await state.get_data()
+    wheel_code = data.get('wheel_code')
+
+    if wheel_code:
+        # Активуємо приз після реєстрації
+        await handle_wheel_prize(message, tg_user, wheel_code)
+        await state.update_data(wheel_code=None)
+        return
 
     if phone_number:
         try:
@@ -95,7 +176,7 @@ async def handle_contact(message: Message, bot: Bot, state: FSMContext) -> None:
                 )
         except:
             pass
-            
+
         await send_message(
             message=message,
             message_name="contact_received",

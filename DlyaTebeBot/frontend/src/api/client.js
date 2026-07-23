@@ -1,7 +1,9 @@
 import axios from "axios";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+
 const api = axios.create({
-  baseURL: "/api/miniapp/",
+  baseURL: `${API_BASE_URL}/api/miniapp/`,
 });
 
 api.interceptors.request.use((config) => {
@@ -20,7 +22,7 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       try {
         const refreshToken = localStorage.getItem("refresh");
-        const res = await axios.post("/api/token/refresh/", {
+        const res = await axios.post(`${API_BASE_URL}/api/token/refresh/`, {
           refresh: refreshToken,
         });
         localStorage.setItem("access", res.data.access);

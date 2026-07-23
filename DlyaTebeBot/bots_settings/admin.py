@@ -1,9 +1,10 @@
 from django.contrib import admin
+from unfold.admin import ModelAdmin, TabularInline
 
 from .models import Message, Button, PromoCampaign, BroadcastMessage
 
 
-class ButtonInline(admin.TabularInline):
+class ButtonInline(TabularInline):
     model = Button
     extra = 1
     fields = ("text", "url", "created_at", "updated_at")
@@ -11,7 +12,7 @@ class ButtonInline(admin.TabularInline):
 
 
 @admin.register(Message)
-class MessageAdmin(admin.ModelAdmin):
+class MessageAdmin(ModelAdmin):
     list_display = ("name", "description", "created_at", "updated_at")
     search_fields = ("name",)
     readonly_fields = ("name", "description", "created_at", "updated_at")
@@ -29,18 +30,32 @@ class MessageAdmin(admin.ModelAdmin):
 
 
 @admin.register(PromoCampaign)
-class PromoCampaignAdmin(admin.ModelAdmin):
+class PromoCampaignAdmin(ModelAdmin):
     list_display = ("name", "start_date", "end_date")
     search_fields = ("name",)
 
 
 @admin.register(BroadcastMessage)
-class BroadCastMessageAdmin(admin.ModelAdmin):
+class BroadCastMessageAdmin(ModelAdmin):
     list_display = (
         "name",
         "scheduled_at",
         "send_in_tg",
         "send_in_viber",
     )
-    
+
+    readonly_fields = (
+        "send_in_tg",
+        "send_in_viber",
+    )
+
+    fields = (
+        "name",
+        "image",
+        "text",
+        "scheduled_at",
+        "send_in_tg",
+        "send_in_viber",
+    )
+
     inlines = [ButtonInline]

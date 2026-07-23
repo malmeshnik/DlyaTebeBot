@@ -8,36 +8,38 @@ from django.utils.html import format_html
 from django.conf import settings
 from django.urls import path
 from django.shortcuts import render, redirect, get_object_or_404
+from unfold.admin import ModelAdmin, TabularInline
 
 from aiogram import Bot
 
 from bot.models import TgUser, TgMessage
 from viber_bot.models import ViberUser, ViberMessage
-from .models import Gender, Brand, Product, ProductImage, Banner, ProductVariant, Order
+from .models import Gender, Brand, Product, ProductImage, Banner, ProductVariant, Order, WheelPrize, WheelSpin
+from .widgets import ColorRadioSelect
 
 class AdminReplyForm(forms.Form):
     text = forms.CharField(widget=forms.Textarea)
 
-class ProductVariantInline(admin.TabularInline):
+class ProductVariantInline(TabularInline):
     model = ProductVariant
     extra = 1
     fields = ("volume_ml", "price", "old_price", "is_active")
     ordering = ("volume_ml",)
 
 @admin.register(Gender)
-class GenderAdmin(admin.ModelAdmin):
+class GenderAdmin(ModelAdmin):
     list_display = ("name", "slug", "description")
     prepopulated_fields = {"slug": ("name",)}
 
 
 @admin.register(Brand)
-class BrandAdmin(admin.ModelAdmin):
+class BrandAdmin(ModelAdmin):
     list_display = ("name", "slug", "gender")
     prepopulated_fields = {"slug": ("name",)}
     search_fields = ("name",)
 
 
-class ProductImageInline(admin.TabularInline):
+class ProductImageInline(TabularInline):
     model = ProductImage
     extra = 1
     readonly_fields = ("image_preview",)
@@ -47,7 +49,7 @@ class ProductImageInline(admin.TabularInline):
 
 
 @admin.register(Product)
-class ProductAdmin(admin.ModelAdmin):
+class ProductAdmin(ModelAdmin):
 
     list_display = (
         "image_preview_small",
@@ -142,7 +144,7 @@ class ProductAdmin(admin.ModelAdmin):
 
 
 @admin.register(Banner)
-class BannerAdmin(admin.ModelAdmin):
+class BannerAdmin(ModelAdmin):
     list_display = ("image", "link")
 
 def _get_grid_class(count):
@@ -193,7 +195,7 @@ def _build_group(messages):
     }
 
 @admin.register(Order)
-class OrderAdmin(admin.ModelAdmin):
+class OrderAdmin(ModelAdmin):
     list_display = (
         "order_name",
         "product",
@@ -263,6 +265,133 @@ class OrderAdmin(admin.ModelAdmin):
             url = reverse("admin:viberuser-chat", args=[obj.user.id])
 
         return format_html(
-            '<a class="button" href="{}">💬 Відкрити чат</a>',
+            '<a href="{}" style="display: inline-flex; align-items: center; gap: 0.5rem; '
+            'padding: 0.5rem 1rem; background: rgb(59, 130, 246); color: white; '
+            'border-radius: 0.5rem; text-decoration: none; font-weight: 500; '
+            'font-size: 0.875rem; transition: background 0.2s; white-space: nowrap;" '
+            'onmouseover="this.style.background=\'rgb(37, 99, 235)\'" '
+            'onmouseout="this.style.background=\'rgb(59, 130, 246)\'">'
+            '💬 Відкрити чат</a>',
             url
         )
+
+
+class WheelPrizeAdminForm(forms.ModelForm):
+    class Meta:
+        model = WheelPrize
+        fields = '__all__'
+        widgets = {
+            'color': ColorRadioSelect(),
+        }
+
+
+@admin.register(WheelPrize)
+class WheelPrizeAdmin(ModelAdmin):
+    form = WheelPrizeAdminForm
+
+    list_display = (
+        'color_preview',
+        'name',
+        'probability',
+        'sort_order',
+        'lose',
+        'is_active',
+        'spin_count',
+    )
+
+    list_editable = ('probability', 'sort_order', 'is_active', 'lose')
+    list_filter = ('is_active', 'created_at')
+    search_fields = ('name',)
+    ordering = ('sort_order', 'id')
+
+    fieldsets = (
+        ('🎁 Інформація про приз', {
+            'fields': ('name', 'probability', 'lose', 'is_active')
+        }),
+        ('💬 Повідомлення після виграшу', {
+            'fields': ('win_image', 'message_text')
+        }),
+        ('🎨 Оформлення', {
+            'fields': ('color', 'sort_order')
+        }),
+    )
+
+    def color_preview(self, obj):
+        return format_html(
+            '<div style="width: 40px; height: 40px; background-color: {}; '
+            'border-radius: 6px; border: 2px solid rgba(0,0,0,0.1);"></div>',
+            obj.color
+        )
+    color_preview.short_description = 'Колір'
+
+    def spin_count(self, obj):
+        count = obj.spins.count()
+        return format_html(
+            '<span style="color: #10B981; font-weight: 600;">{}</span>',
+            count
+        )
+    spin_count.short_description = 'Кількість виграшів'
+
+
+@admin.register(WheelSpin)
+class WheelSpinAdmin(ModelAdmin):
+    list_display = (
+        'code',
+        'prize',
+        'user_info',
+        'platform',
+        'colored_status',
+        'created_at',
+    )
+
+    list_filter = ('is_claimed', 'created_at', 'prize')
+    search_fields = ('code', 'tg_user__username', 'viber_user__name')
+    readonly_fields = (
+        'code',
+        'prize',
+        'tg_user',
+        'viber_user',
+        'session_key',
+        'created_at',
+        'claimed_at',
+    )
+    ordering = ('-created_at',)
+
+    fields = (
+        'code',
+        'prize',
+        'tg_user',
+        'viber_user',
+        'session_key',
+        'is_claimed',
+        'created_at',
+        'claimed_at',
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+    def user_info(self, obj):
+        if obj.tg_user:
+            return format_html(
+                '<strong>{}</strong><br><small>@{}</small>',
+                obj.tg_user.first_name or obj.tg_user.username,
+                obj.tg_user.username or 'без username'
+            )
+        elif obj.viber_user:
+            return format_html(
+                '<strong>{}</strong>',
+                obj.viber_user.name or 'Viber користувач'
+            )
+        return format_html('<em style="color: #999;">Анонімний</em>')
+    user_info.short_description = 'Користувач'
+
+    def colored_status(self, obj):
+        if obj.is_claimed:
+            return format_html(
+                '<span style="color: #10B981; font-weight: 600;">✓ Забрано</span>'
+            )
+        return format_html(
+            '<span style="color: #F59E0B; font-weight: 600;">⏳ Очікує</span>'
+        )
+    colored_status.short_description = 'Статус'

@@ -10,10 +10,11 @@ from viberbot.api.viber_requests import (
 from viberbot.api.messages import ContactMessage, TextMessage
 
 from bot.api import ApiCRM
+from bot.models import TgUser
 from bots_settings.repo import PromoCampaignRepo, MessageRepo
 from .services import ViberService
 from .repo import ViberUserRepo, ViberMessageRepo
-from .fsm import get_state, clear_state
+from .fsm import get_state, set_state
 
 
 
@@ -30,6 +31,58 @@ crm_client = ApiCRM(settings.PHONE_CRM_AUTH, settings.PASSWORD_CRM)
 service = ViberService(repo, promo_repo, crm_client, msg_repo)
 
 handlers = []
+
+
+def _notify_viber_admins(user, text, media_url, viber):
+    """Сповіщає всіх Telegram адмінів про нове повідомлення від Viber користувача"""
+
+    # Отримуємо адмінів з Telegram (оскільки в Viber немає is_admin поля)
+    from aiogram import Bot
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    from asgiref.sync import async_to_sync
+
+    admin_users = list(TgUser.objects.filter(is_admin=True))
+
+    if not admin_users:
+        return
+
+    # Формуємо текст сповіщення
+    user_name = user.name or f"ID: {user.viber_id}"
+    message_preview = ""
+
+    if text:
+        message_preview = text[:100] + ("..." if len(text) > 100 else "")
+    elif media_url:
+        message_preview = "🖼 Зображення"
+
+    notification_text = (
+        f"💬 <b>Нове Viber повідомлення</b>\n\n"
+        f"👤 <b>Від:</b> {user_name}\n"
+        f"🆔 <b>Viber ID:</b> <code>{user.viber_id}</code>\n"
+        f"📝 <b>Повідомлення:</b> {message_preview}"
+    )
+
+    # Створюємо кнопку з посиланням на чат
+    admin_chat_url = f"{settings.ADMIN_URL}/viber_bot/viberuser/chat/{user.id}/"
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="💬 Відкрити чат", url=admin_chat_url)]
+    ])
+
+    # Відправляємо сповіщення всім адмінам через Telegram
+    async def send_notifications():
+        async with Bot(settings.BOT_TOKEN) as bot:
+            for admin in admin_users:
+                try:
+                    await bot.send_message(
+                        chat_id=admin.telegram_id,
+                        text=notification_text,
+                        parse_mode="HTML",
+                        reply_markup=keyboard
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to notify admin {admin.telegram_id}: {e}")
+
+    async_to_sync(send_notifications)()
 
 
 def viber_handler(
@@ -72,6 +125,7 @@ def handle_request(viber_request: Any, viber: Optional[Any] = None) -> None:
         message_type = getattr(message, "_message_type", "_text")
 
         text = getattr(message, "text", "")
+        action = getattr(message, "action_body", text)
         media_url = None
 
         if message_type == "picture":
@@ -82,13 +136,29 @@ def handle_request(viber_request: Any, viber: Optional[Any] = None) -> None:
             name=viber_request.sender.name,
         )
 
-        ViberMessageRepo.create(
-            user=user,
-            text=text,
-            media_url=media_url,
-            is_bot=False,
-            timestamp=viber_request.timestamp
-        )
+        # Зберігаємо тільки реальні повідомлення від користувачів
+        # Пропускаємо натискання на кнопки меню та службові дії
+        is_menu_action = action in [
+            "CHECK_PRICE", "__CHECK_PRICE__", "METRO_CARD", "PROMO",
+            "my_bonus_card", "contact_us", "social_media", "promo",
+            "my_purchaces", "show_menu", "unsubscribe", "hello"
+        ]
+        is_details_action = action.startswith("details_") or action.startswith("promo_")
+
+        # Зберігаємо тільки якщо це текст (не дія) або медіа
+        should_save = (text and not is_menu_action and not is_details_action) or media_url
+
+        if should_save:
+            ViberMessageRepo.create(
+                user=user,
+                text=text,
+                media_url=media_url,
+                is_bot=False,
+                timestamp=viber_request.timestamp
+            )
+
+            # Сповіщення адмінів про нове повідомлення
+            _notify_viber_admins(user, text, media_url, viber)
 
     for h in handlers:
         if h["type"] and not isinstance(viber_request, h["type"]):
@@ -181,7 +251,13 @@ def handle_contact(viber_request: Any, viber: Optional[Any] = None) -> None:
 @viber_handler(request_type=ViberConversationStartedRequest)
 def handle_start_request(viber_request: Any, viber: Optional[Any] = None) -> None:
     user_id = viber_request.user.id
-    messages = service.handle_start(user_id, viber_request.user.name)
+    context = getattr(viber_request, "context", None) or ""
+
+    logger.info(
+        f"Viber conversation_started | user_id={user_id} | context={context!r}"
+    )
+
+    messages = service.handle_start(user_id, viber_request.user.name, context=context)
     viber.send_messages(user_id, messages)
 
 

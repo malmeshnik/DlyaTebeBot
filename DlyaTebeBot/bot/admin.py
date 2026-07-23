@@ -2,21 +2,21 @@ from aiogram import Bot
 from loguru import logger
 
 from django.contrib import admin
-from django.db.models import Count
+from django.db.models import Count, Q, Max
 from django.urls import path
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils.html import format_html
 from django import forms
 from django.conf import settings
 from asgiref.sync import async_to_sync
+from unfold.admin import ModelAdmin, TabularInline
 from .models import TgUser, TgMessage
-
 
 class AdminReplyForm(forms.Form):
     text = forms.CharField(widget=forms.Textarea)
 
 
-class TgMessageInline(admin.TabularInline):
+class TgMessageInline(TabularInline):
     model = TgMessage
     fields = ("message_id", "chat_id", "text", "date", "is_edited")
     readonly_fields = ("message_id", "chat_id", "text", "date", "is_edited")
@@ -76,13 +76,14 @@ def _build_group(messages):
 
 
 @admin.register(TgUser)
-class TgUserAdmin(admin.ModelAdmin):
+class TgUserAdmin(ModelAdmin):
     list_display = (
         "telegram_id",
         "username",
         "full_name",
         "phone_number",
         "is_admin",
+        "unread_count",
         "messages_count",
         "created_at",
         "open_chat",
@@ -107,17 +108,44 @@ class TgUserAdmin(admin.ModelAdmin):
         "updated_at",
     )
 
-    ordering = ("-created_at",)
-
     inlines = [TgMessageInline]
+
+    def changelist_view(self, request, extra_context=None):
+        # Підраховуємо загальну кількість непрочитаних
+        from django.db.models import Count, Q
+        total_unread = TgUser.objects.aggregate(
+            total=Count('messages', filter=Q(messages__is_read=False, messages__is_bot=False))
+        )['total'] or 0
+
+        extra_context = extra_context or {}
+        extra_context['total_unread'] = total_unread
+        return super().changelist_view(request, extra_context)
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
-        return queryset.annotate(messages_total=Count("messages"))
+        queryset = queryset.annotate(
+            messages_total=Count("messages"),
+            unread_total=Count("messages", filter=Q(messages__is_read=False, messages__is_bot=False)),
+            last_message_date=Max("messages__date", filter=Q(messages__is_bot=False))
+        )
+        # Примусово скидаємо інші сортування через .order_by() і ставимо наше
+        return queryset.order_by("-unread_total", "-last_message_date")
 
     def full_name(self, obj):
         return f"{obj.first_name or ''} {obj.last_name or ''}".strip()
     full_name.short_description = "Повне ім'я"
+
+    def unread_count(self, obj):
+        count = obj.unread_total
+        if count > 0:
+            return format_html(
+                '<span style="display: inline-flex; align-items: center; justify-content: center; '
+                'min-width: 24px; height: 24px; padding: 0 8px; background: rgb(239, 68, 68); '
+                'color: white; border-radius: 12px; font-weight: 600; font-size: 0.75rem;">{}</span>',
+                count
+            )
+        return "-"
+    unread_count.short_description = "Непрочитані"
 
     def messages_count(self, obj):
         return obj.messages_total
@@ -125,7 +153,13 @@ class TgUserAdmin(admin.ModelAdmin):
 
     def open_chat(self, obj):
         return format_html(
-            '<a class="button" href="chat/{}/">Відкрити чат</a>',
+            '<a href="chat/{}/" style="display: inline-flex; align-items: center; gap: 0.5rem; '
+            'padding: 0.5rem 1rem; background: rgb(59, 130, 246); color: white; '
+            'border-radius: 0.5rem; text-decoration: none; font-weight: 500; '
+            'font-size: 0.875rem; transition: background 0.2s; white-space: nowrap;" '
+            'onmouseover="this.style.background=\'rgb(37, 99, 235)\'" '
+            'onmouseout="this.style.background=\'rgb(59, 130, 246)\'">'
+            '💬 Відкрити чат</a>',
             obj.id
         )
     open_chat.short_description = "Чат"
@@ -149,6 +183,9 @@ class TgUserAdmin(admin.ModelAdmin):
             .prefetch_related("media")
             .order_by("date")
         )
+
+        # Позначаємо всі повідомлення від користувача як прочитані
+        user.messages.filter(is_bot=False, is_read=False).update(is_read=True)
 
         raw_groups = []
         current_group = []
@@ -199,9 +236,14 @@ class TgUserAdmin(admin.ModelAdmin):
             return redirect(request.path)
 
         context = {
-            "user": user,
+            **self.admin_site.each_context(request),
+            "tg_user": user,
             "grouped_messages": grouped_messages,
             "form": form,
+            "title": f"Чат з {user.first_name or user.username}",
+            "site_title": self.admin_site.site_title,
+            "site_header": self.admin_site.site_header,
+            "has_permission": True,
         }
 
         logger.info(f'Grouped messages count: {len(grouped_messages)}')

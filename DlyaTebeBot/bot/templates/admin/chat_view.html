@@ -1,40 +1,48 @@
-{% extends "admin/base_site.html" %}
+{% extends "unfold/layouts/base.html" %}
+{% load i18n static %}
 
-{% block content %}
-
+{% block extrahead %}
+{{ block.super }}
 <style>
 ul.messagelist {
     display: none !important;
-}
-body {
-    background: #e5ddd5 !important;
 }
 
 .chat-container {
     display: flex;
     flex-direction: column;
-    height: 80vh;
-    max-width: 900px;
-    margin: auto;
+    height: calc(100vh - 120px);
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.5rem;
 }
 
 .chat-header {
-    font-size: 18px;
+    font-size: 1.25rem;
     font-weight: 600;
-    padding: 10px 0;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: var(--unfold-bg-white);
+    border-radius: 0.75rem;
+    border: 1px solid var(--unfold-border-color);
+    color: var(--unfold-text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .chat-messages {
     flex: 1;
     overflow-y: auto;
-    padding: 15px;
-    background: #efeae2;
-    border-radius: 12px;
+    padding: 1.5rem;
+    background: var(--unfold-bg-base);
+    border-radius: 0.75rem;
+    border: 1px solid var(--unfold-border-color);
 }
 
 .message-row {
     display: flex;
-    margin-bottom: 15px;
+    margin-bottom: 1rem;
 }
 
 .message-row.user {
@@ -47,42 +55,52 @@ body {
 
 .bubble {
     max-width: 75%;
-    padding: 10px 14px;
-    border-radius: 12px;
-    font-size: 14px;
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    font-size: 0.9375rem;
     position: relative;
     word-wrap: break-word;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .bubble.user {
-    background: white;
-    border-top-left-radius: 4px;
+    background: var(--unfold-bg-white);
+    border: 1px solid var(--unfold-border-color);
+    border-top-left-radius: 0.25rem;
+    color: var(--unfold-text-primary);
 }
 
 .bubble.bot {
-    background: #dcf8c6;
-    border-top-right-radius: 4px;
+    background: rgb(59, 130, 246);
+    border-top-right-radius: 0.25rem;
+    color: white;
 }
 
-/* Якщо є тільки медіа (без тексту) — прибираємо padding бульбашки */
+html.dark .bubble.bot {
+    background: rgb(37, 99, 235);
+}
+
 .bubble.media-only {
-    padding: 4px;
+    padding: 0.25rem;
     background: transparent !important;
+    border: none !important;
+    box-shadow: none;
 }
 
 .message-time {
-    font-size: 11px;
-    color: #666;
+    font-size: 0.75rem;
+    color: var(--unfold-text-secondary);
     text-align: right;
-    margin-top: 5px;
+    margin-top: 0.375rem;
+    opacity: 0.8;
 }
 
 /* ===== TELEGRAM-STYLE PHOTO GRID ===== */
 
 .photo-grid {
     display: grid;
-    gap: 3px;
-    border-radius: 10px;
+    gap: 0.25rem;
+    border-radius: 0.75rem;
     overflow: hidden;
     max-width: 420px;
 }
@@ -96,7 +114,7 @@ body {
     max-height: 320px;
     object-fit: cover;
     display: block;
-    border-radius: 10px;
+    border-radius: 0.75rem;
 }
 
 /* 2 фото — поряд */
@@ -110,13 +128,13 @@ body {
     display: block;
 }
 .photo-grid.count-2 .grid-photo:first-child {
-    border-radius: 10px 0 0 10px;
+    border-radius: 0.75rem 0 0 0.75rem;
 }
 .photo-grid.count-2 .grid-photo:last-child {
-    border-radius: 0 10px 10px 0;
+    border-radius: 0 0.75rem 0.75rem 0;
 }
 
-/* 3 фото — одне велике зверху, два менших знизу (як в Telegram) */
+/* 3 фото — одне велике зверху, два менших знизу */
 .photo-grid.count-3 {
     grid-template-columns: 1fr 1fr;
 }
@@ -125,14 +143,14 @@ body {
 }
 .photo-grid.count-3 .photo-grid-item:nth-child(1) .grid-photo {
     height: 200px;
-    border-radius: 10px 10px 0 0;
+    border-radius: 0.75rem 0.75rem 0 0;
 }
 .photo-grid.count-3 .photo-grid-item:nth-child(2) .grid-photo {
-    border-radius: 0 0 0 10px;
+    border-radius: 0 0 0 0.75rem;
     height: 140px;
 }
 .photo-grid.count-3 .photo-grid-item:nth-child(3) .grid-photo {
-    border-radius: 0 0 10px 0;
+    border-radius: 0 0 0.75rem 0;
     height: 140px;
 }
 .photo-grid.count-3 .grid-photo {
@@ -152,12 +170,12 @@ body {
     object-fit: cover;
     display: block;
 }
-.photo-grid.count-4 .grid-photo:nth-child(1) { border-radius: 10px 0 0 0; }
-.photo-grid.count-4 .grid-photo:nth-child(2) { border-radius: 0 10px 0 0; }
-.photo-grid.count-4 .grid-photo:nth-child(3) { border-radius: 0 0 0 10px; }
-.photo-grid.count-4 .grid-photo:nth-child(4) { border-radius: 0 0 10px 0; }
+.photo-grid.count-4 .grid-photo:nth-child(1) { border-radius: 0.75rem 0 0 0; }
+.photo-grid.count-4 .grid-photo:nth-child(2) { border-radius: 0 0.75rem 0 0; }
+.photo-grid.count-4 .grid-photo:nth-child(3) { border-radius: 0 0 0 0.75rem; }
+.photo-grid.count-4 .grid-photo:nth-child(4) { border-radius: 0 0 0.75rem 0; }
 
-/* 5+ фото — перші 3 у рядку, решта 2x2 або inline */
+/* 5+ фото */
 .photo-grid.count-5 {
     grid-template-columns: 1fr 1fr 1fr;
 }
@@ -171,18 +189,17 @@ body {
     grid-column: span 1;
     height: 130px;
 }
-/* 4 і 5 центруємо через підсітку */
 .photo-grid.count-5 .grid-photo {
     width: 100%;
     object-fit: cover;
     display: block;
 }
-.photo-grid.count-5 .grid-photo:nth-child(1) { border-radius: 10px 0 0 0; }
-.photo-grid.count-5 .grid-photo:nth-child(3) { border-radius: 0 10px 0 0; }
-.photo-grid.count-5 .grid-photo:nth-child(4) { border-radius: 0 0 0 10px; }
-.photo-grid.count-5 .grid-photo:nth-child(5) { border-radius: 0 0 10px 0; }
+.photo-grid.count-5 .grid-photo:nth-child(1) { border-radius: 0.75rem 0 0 0; }
+.photo-grid.count-5 .grid-photo:nth-child(3) { border-radius: 0 0.75rem 0 0; }
+.photo-grid.count-5 .grid-photo:nth-child(4) { border-radius: 0 0 0 0.75rem; }
+.photo-grid.count-5 .grid-photo:nth-child(5) { border-radius: 0 0 0.75rem 0; }
 
-/* 6+ — 3 стовпці, рівна сітка */
+/* 6+ — 3 стовпці */
 .photo-grid.count-many {
     grid-template-columns: 1fr 1fr 1fr;
 }
@@ -201,12 +218,12 @@ body {
 .photo-more-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.55);
+    background: rgba(0, 0, 0, 0.6);
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 24px;
+    font-size: 1.5rem;
     font-weight: bold;
     cursor: pointer;
 }
@@ -216,7 +233,7 @@ body {
     transition: opacity 0.2s;
 }
 .grid-photo:hover {
-    opacity: 0.85;
+    opacity: 0.9;
 }
 
 /* ===== END PHOTO GRID ===== */
@@ -224,11 +241,12 @@ body {
 .chat-input-wrapper {
     display: flex;
     align-items: center;
-    padding: 10px;
-    background: white;
-    border-radius: 30px;
-    margin-top: 10px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    padding: 0.75rem 1rem;
+    background: var(--unfold-bg-white);
+    border-radius: 1.5rem;
+    margin-top: 1rem;
+    border: 1px solid var(--unfold-border-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .chat-input-wrapper textarea {
@@ -236,27 +254,44 @@ body {
     border: none;
     resize: none;
     outline: none;
-    padding: 8px;
-    font-size: 14px;
-    border-radius: 20px;
+    padding: 0.5rem;
+    font-size: 0.9375rem;
+    border-radius: 1rem;
+    background: transparent;
+    color: var(--unfold-text-primary);
+}
+
+.chat-input-wrapper textarea::placeholder {
+    color: var(--unfold-text-secondary);
+    opacity: 0.6;
 }
 
 .send-btn {
-    background: #0088cc;
+    background: rgb(59, 130, 246);
     border: none;
     color: white;
     width: 42px;
     height: 42px;
     border-radius: 50%;
     cursor: pointer;
-    font-size: 18px;
+    font-size: 1.125rem;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: background 0.2s;
+    flex-shrink: 0;
 }
 
 .send-btn:hover {
-    background: #007ab8;
+    background: rgb(37, 99, 235);
+}
+
+html.dark .send-btn {
+    background: rgb(37, 99, 235);
+}
+
+html.dark .send-btn:hover {
+    background: rgb(29, 78, 216);
 }
 
 /* Modal */
@@ -270,7 +305,7 @@ body {
     width: 100%;
     height: 100%;
     overflow: auto;
-    background-color: rgba(0,0,0,0.85);
+    background-color: rgba(0, 0, 0, 0.9);
 }
 
 .modal-content {
@@ -278,7 +313,7 @@ body {
     margin: auto;
     max-width: 90%;
     max-height: 85vh;
-    border-radius: 10px;
+    border-radius: 0.75rem;
 }
 
 .close-modal {
@@ -286,49 +321,89 @@ body {
     top: 20px;
     right: 35px;
     color: #fff;
-    font-size: 40px;
+    font-size: 2.5rem;
     font-weight: bold;
     cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.close-modal:hover {
+    opacity: 0.7;
 }
 
 .bubble.media-only:has(.message-time + div),
 .bubble.media-only:has(div + .message-time) {
-    padding: 10px 14px !important;
-    background: white !important;
+    padding: 0.75rem 1rem !important;
+    background: var(--unfold-bg-white) !important;
+    border: 1px solid var(--unfold-border-color) !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Scrollbar styling */
+.chat-messages::-webkit-scrollbar {
+    width: 8px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+    background: var(--unfold-bg-base);
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+    background: var(--unfold-border-color);
+    border-radius: 4px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover {
+    background: var(--unfold-text-secondary);
 }
 
 /* Мобільна адаптація */
 @media (max-width: 768px) {
-    .chat-container { height: 85vh; }
-    .bubble { max-width: 90%; font-size: 15px; }
-    .photo-grid { max-width: 100%; }
+    .chat-container {
+        height: calc(100vh - 80px);
+        padding: 1rem;
+    }
+    .bubble {
+        max-width: 90%;
+        font-size: 0.9375rem;
+    }
+    .photo-grid {
+        max-width: 100%;
+    }
+    .chat-header {
+        font-size: 1.125rem;
+        padding: 0.75rem;
+    }
 }
 </style>
+{% endblock %}
 
+{% block content %}
 <div class="chat-container">
 
     <div class="chat-header">
-        💬 {{ user.first_name }}{% if user.last_name %} {{ user.last_name }}{% endif %}
+        💬 {{ tg_user.first_name }}{% if tg_user.last_name %} {{ tg_user.last_name }}{% endif %}
     </div>
 
     <div class="chat-messages" id="chatBox">
 
     {% for group in grouped_messages %}
 
-            <div class="message-row {% if group.first.is_bot %}bot{% else %}user{% endif %}" 
+            <div class="message-row {% if group.first.is_bot %}bot{% else %}user{% endif %}"
                 style="flex-direction: column; align-items: {% if group.first.is_bot %}flex-end{% else %}flex-start{% endif %};">
 
-                <!-- ІМʼЯ -->
+                <!-- ІМ'Я -->
                 <div style="
-                    font-size: 12px;
-                    color: #666;
-                    margin-bottom: 4px;
+                    font-size: 0.75rem;
+                    color: var(--unfold-text-secondary);
+                    margin-bottom: 0.25rem;
+                    font-weight: 500;
                     {% if group.first.is_bot %}text-align: right;{% endif %}
                 ">
                     {% if group.first.is_bot %}
                         Ви
                     {% else %}
-                        {{ user.first_name }}{% if user.last_name %} {{ user.last_name }}{% endif %}
+                        {{ tg_user.first_name }}{% if tg_user.last_name %} {{ tg_user.last_name }}{% endif %}
                     {% endif %}
                 </div>
 
@@ -336,14 +411,14 @@ body {
                     {# TEXT (якщо є) #}
                     {% for msg in group.messages %}
                         {% if msg.text %}
-                            <div style="margin-bottom:6px;">{{ msg.text }}</div>
+                            <div style="margin-bottom:0.375rem;">{{ msg.text }}</div>
                         {% endif %}
                     {% endfor %}
 
                     {# TELEGRAM-STYLE PHOTO GRID #}
                     {% if group.media_list %}
                     <div class="photo-grid {{ group.grid_class }}"
-                         style="margin: {% if group.has_text %}8px 0 0 0{% else %}0{% endif %}">
+                         style="margin: {% if group.has_text %}0.5rem 0 0 0{% else %}0{% endif %}">
 
                         {% for media in group.visible_media %}
                             <div class="photo-grid-item">
@@ -365,7 +440,7 @@ body {
 
                     {# CAPTION + TIME #}
                     {% if group.caption %}
-                        <div style="margin-top:6px;">{{ group.caption }}</div>
+                        <div style="margin-top:0.375rem;">{{ group.caption }}</div>
                     {% endif %}
                     <div class="message-time">{{ group.last.date|date:"H:i" }}</div>
 
@@ -393,9 +468,17 @@ body {
 </div>
 
 <script>
-    // Scroll to bottom
-    const chatBox = document.getElementById("chatBox");
-    chatBox.scrollTop = chatBox.scrollHeight;
+    // Scroll to bottom after page load
+    function scrollToBottom() {
+        const chatBox = document.getElementById("chatBox");
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    // Викликаємо одразу та після завантаження
+    scrollToBottom();
+    window.addEventListener('load', scrollToBottom);
+    // На випадок якщо зображення ще завантажуються
+    setTimeout(scrollToBottom, 100);
 
     // Auto-resize textarea
     const textarea = document.getElementById("messageInput");

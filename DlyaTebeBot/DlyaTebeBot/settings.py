@@ -13,12 +13,19 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+from django.templatetags.static import static
+from django.urls import reverse_lazy
 
 from celery.schedules import crontab
 
 load_dotenv()
 
+# Import helper functions for unread counts
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_BOT_USERNAME = os.getenv("TELEGRAM_BOT_USERNAME")
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -30,7 +37,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
 CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
@@ -38,17 +45,21 @@ CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
 BASE_CRM_URL = os.getenv("BASE_URL")
 PHONE_CRM_AUTH = os.getenv("CRM_PHONE")
 PASSWORD_CRM = os.getenv("PASSWORD_CRM")
+ADMIN_URL = os.getenv("ADMIN_URL", "http://localhost:8000")
 
 
 # Application definition
 
 INSTALLED_APPS = [
+    "unfold",  # django-unfold має бути ПЕРЕД django.contrib.admin
+    "unfold.contrib.filters",  # опціонально, для покращених фільтрів
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "rest_framework",
     "django_filters",
     "corsheaders",
     "easymde",
@@ -74,13 +85,14 @@ ROOT_URLCONF = "DlyaTebeBot.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "bot.context_processors.unread_messages",
             ],
         },
     },
@@ -179,6 +191,7 @@ REST_FRAMEWORK = {
         "anon": "100/day",
         "user": "1000/day",
         "telegram_auth": "5/minute",
+        # "wheel_spin": "3/hour",
     },
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
@@ -195,6 +208,7 @@ DOMAIN = os.getenv("DOMAIN")
 VIBER_BOT_TOKEN = os.getenv("VIBER_BOT_TOKEN")
 VIBER_WEBHOOK_BASE_URL = os.getenv("VIBER_WEBHOOK_BASE_URL")
 VIBER_WEBHOOK_PATH = os.getenv("VIBER_WEBHOOK_PATH")
+VIBER_CHAT_URI = os.getenv("VIBER_CHAT_URI")
 
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://redis:6379/0")
 
@@ -226,5 +240,120 @@ CELERY_BEAT_SCHEDULE = {
     "viber_scheduler_messages_every_minute": {
         "task": "viber_bot.tasks.scheduler_messages_task",
         "schedule": 60.0,
+    },
+}
+
+# Django Unfold Configuration
+UNFOLD = {
+    "SITE_TITLE": "Dlya Tebe - Адмін Панель",
+    "SITE_HEADER": "Dlya Tebe",
+    "SITE_URL": "/",
+    "COLORS": {
+        "primary": {
+            "50": "255 243 224",
+            "100": "255 230 193",
+            "200": "255 217 162",
+            "300": "255 204 131",
+            "400": "255 191 100",
+            "500": "212 175 55",   # Золотий колір з логотипу (#d4af37)
+            "600": "169 140 44",
+            "700": "127 105 33",
+            "800": "84 70 22",
+            "900": "42 35 11",
+        },
+    },
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": True,
+        "navigation": [
+            {
+                "title": "Головна",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Дашборд",
+                        "icon": "dashboard",
+                        "link": lambda request: "/admin/",
+                    },
+                ],
+            },
+            {
+                "title": "Користувачі",
+                "items": [
+                    {
+                        "title": "Telegram користувачі",
+                        "icon": "person",
+                        "link": "/admin/bot/tguser/",
+                        "badge": "bot.utils.get_tg_unread_count",
+                    },
+                    {
+                        "title": "Viber користувачі",
+                        "icon": "person",
+                        "link": "/admin/viber_bot/viberuser/",
+                        "badge": "bot.utils.get_viber_unread_count",
+                    },
+                ],
+            },
+            {
+                "title": "Магазин",
+                "items": [
+                    {
+                        "title": "Продукти",
+                        "icon": "shopping_bag",
+                        "link": lambda request: "/admin/miniapp/product/",
+                    },
+                    {
+                        "title": "Бренди",
+                        "icon": "label",
+                        "link": lambda request: "/admin/miniapp/brand/",
+                    },
+                    {
+                        "title": "Категорії",
+                        "icon": "category",
+                        "link": lambda request: "/admin/miniapp/gender/",
+                    },
+                    {
+                        "title": "Замовлення",
+                        "icon": "receipt",
+                        "link": lambda request: "/admin/miniapp/order/",
+                    },
+                    {
+                        "title": "Банери",
+                        "icon": "image",
+                        "link": lambda request: "/admin/miniapp/banner/",
+                    },
+                ],
+            },
+            {
+                "title": "Колесо фортуни",
+                "items": [
+                    {
+                        "title": "Призи",
+                        "icon": "card_giftcard",
+                        "link": lambda request: "/admin/miniapp/wheelprize/",
+                    },
+                    {
+                        "title": "Прокрути",
+                        "icon": "history",
+                        "link": lambda request: "/admin/miniapp/wheelspin/",
+                    },
+                ],
+            },
+            {
+                "title": "Маркетинг",
+                "items": [
+                    {
+                        "title": "Промо-кампанії",
+                        "icon": "campaign",
+                        "link": lambda request: "/admin/bots_settings/promocampaign/",
+                    },
+                    {
+                        "title": "Повідомлення",
+                        "icon": "message",
+                        "link": lambda request: "/admin/bots_settings/message/",
+                    },
+                ],
+            },
+        ],
     },
 }

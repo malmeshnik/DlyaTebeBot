@@ -8,6 +8,9 @@ from .views import (
     OrderViewSet,
     telegram_auth,
     viber_auth,
+    wheel_prizes,
+    wheel_check_eligibility,
+    wheel_spin,
 )
 
 router = DefaultRouter()
@@ -20,5 +23,8 @@ router.register(r"orders", OrderViewSet, basename="orders")
 urlpatterns = [
     path("telegram-auth/", telegram_auth, name="telegram-auth"),
     path("viber-auth/", viber_auth, name="viber-auth"),
+    path("wheel/prizes/", wheel_prizes, name="wheel-prizes"),
+    path("wheel/check-eligibility/", wheel_check_eligibility, name="wheel-check-eligibility"),
+    path("wheel/spin/", wheel_spin, name="wheel-spin"),
     path("", include(router.urls)),
 ]
