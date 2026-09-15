@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.db.models import Count, Q, Max
+from django.db.models import Count, Q, Max, F
 from django.urls import path
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils.html import format_html
@@ -40,13 +40,17 @@ class ViberUserAdmin(ModelAdmin):
         return super().changelist_view(request, extra_context)
 
     def get_queryset(self, request):
-        queryset = super().get_queryset(request)
-        queryset = queryset.annotate(
+        qs = self.model._default_manager.get_queryset()
+        qs = qs.annotate(
             unread_total=Count("messages", filter=Q(messages__is_read=False, messages__is_bot=False)),
             last_message_date=Max("messages__created_at", filter=Q(messages__is_bot=False))
         )
-        # Сортуємо за наявністю непрочитаних (більше = вище), потім за датою останнього повідомлення
-        return queryset.order_by("-unread_total", "-last_message_date", "-created_at")
+        qs = qs.order_by(
+            F("unread_total").desc(),
+            F("last_message_date").desc(nulls_last=True),
+            F("created_at").desc(),
+        )
+        return qs
 
     def unread_count(self, obj):
         count = obj.unread_total

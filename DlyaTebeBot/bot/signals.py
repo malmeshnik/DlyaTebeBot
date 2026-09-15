@@ -12,7 +12,7 @@ crm_client = ApiCRM(settings.PHONE_CRM_AUTH, settings.PASSWORD_CRM)
 
 @receiver(post_save, sender=TgUser)
 def check_CRM_consumer(sender, instance: TgUser, created: bool, **kwargs):
-    if not created:
+    if instance.in_crm:
         return
 
     if not instance.phone_number:
@@ -22,6 +22,8 @@ def check_CRM_consumer(sender, instance: TgUser, created: bool, **kwargs):
     try:
         consumer = crm_client.get_consumer_info(instance.phone_number)
         logger.info(f"CRM consumer exists: #{consumer.id} ({consumer.phone})")
+        instance.in_crm = True
+        instance.save(update_fields=["in_crm"])
         return
     except Exception as e:
         logger.info(f"CRM consumer not found/invalid ({instance.phone_number}), will register. Reason: {e}")

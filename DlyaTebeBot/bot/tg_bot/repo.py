@@ -29,7 +29,7 @@ class TgUserRepo:
         user, _ = TgUser.objects.update_or_create(
             telegram_id=telegram_id, defaults=kwargs
         )
-        return user
+        return user, _
     
     @staticmethod
     def get(telegram_id: int, **kwargs) -> TgUser:

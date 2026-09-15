@@ -7,3 +7,6 @@ class ViberBotConfig(AppConfig):
 
     verbose_name = "Viber Бот"
     verbose_name_plural = "Viber Боти"
+
+    def ready(self):
+        import viber_bot.signals  # noqa

@@ -2,7 +2,7 @@ from aiogram import Bot
 from loguru import logger
 
 from django.contrib import admin
-from django.db.models import Count, Q, Max
+from django.db.models import Count, Q, Max, F
 from django.urls import path
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils.html import format_html
@@ -128,8 +128,12 @@ class TgUserAdmin(ModelAdmin):
             unread_total=Count("messages", filter=Q(messages__is_read=False, messages__is_bot=False)),
             last_message_date=Max("messages__date", filter=Q(messages__is_bot=False))
         )
-        # Примусово скидаємо інші сортування через .order_by() і ставимо наше
-        return queryset.order_by("-unread_total", "-last_message_date")
+        qs = queryset.order_by(
+            F("unread_total").desc(),
+            F("last_message_date").desc(nulls_last=True),
+            F("created_at").desc(),
+        )
+        return qs
 
     def full_name(self, obj):
         return f"{obj.first_name or ''} {obj.last_name or ''}".strip()

@@ -31,6 +31,7 @@ class ViberUser(models.Model):
     )
 
     is_subscribe = models.BooleanField(default=True, verbose_name="Підписаний")
+    in_crm = models.BooleanField(default=False, verbose_name="В CRM")
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата створення")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата оновлення")
